@@ -28,8 +28,8 @@ export class PolygonStrip3D {
 		c.b = b; 
 	}
 
-	getPolygons(): number[][] {
-		const retArray: number[][] = structuredClone(this.vertexes);
+	getPolygons(): Coordinate3d[] {
+		const retArray: Coordinate3d[] = structuredClone(this.vertexes);
 		
 		return retArray;
 	}

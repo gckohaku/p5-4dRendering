@@ -86,7 +86,11 @@ export class Model3D {
 	}
 
 	render() {
-		
+		const polygons: Coordinate3d[][] = []
+
+		for (let i = 0; i < this.parts.length; i++) {
+			polygons.push(this.parts[i].getPolygons());
+		}
 	}
 
 	affine(m: Matrix<4, 4>) {
