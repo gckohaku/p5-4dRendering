@@ -1,0 +1,36 @@
+{
+	"Vue SFC Template with TypeScript and SCSS": {
+		"scope": "vue",
+		"prefix": "vue-sfc-ts-scss",
+		"body": [
+			"<script setup lang=\"ts\">",
+			"// script here",
+			"</script>",
+			"",
+			"<template>",
+			"\t<!-- template here -->",
+			"</template>",
+			"",
+			"<style scoped lang=\"scss\">",
+			"/* style here */",
+			"</style>"
+		]
+	},
+	"Vue SFC Template with TypeScript": {
+		"scope": "vue",
+		"prefix": "vue-sfc-ts",
+		"body": [
+			"<script setup lang=\"ts\">",
+			"// script here",
+			"</script>",
+			"",
+			"<template>",
+			"\t<!-- template here -->",
+			"</template>",
+			"",
+			"<style scoped>",
+			"/* style here */",
+			"</style>"
+		]
+	},
+}
