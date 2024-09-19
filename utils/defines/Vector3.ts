@@ -54,4 +54,12 @@ export class Vector3 {
 	abs(): number {
 		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 	}
+
+	cross(opp: Vector3): Vector3 {
+		return new Vector3(this.y * opp.z - this.z * opp.y, this.z * opp.x - this.x * opp.z, this.x * opp.y - this.y * opp.x);
+	}
+
+	toCoordinateArray(): Coordinate3d {
+		return [this.x, this.y, this.z, 1];
+	}
 }

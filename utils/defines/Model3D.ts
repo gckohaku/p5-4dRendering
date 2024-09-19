@@ -1,10 +1,14 @@
 import { PolygonStrip3D, type Coordinate3d } from "#imports";
 import type p5 from "p5";
 import type { ColorRGBArray } from "./TypeUtilities";
+import { BinaryTree } from "./BinaryTree";
+
+type BSPTreeType = {index: number, subIndex: number}[];
 
 export class Model3D {
 	vertexes: Coordinate3d[] = [];
 	parts: (PolygonStrip3D)[] = [];
+	bspTree: BinaryTree<BSPTreeType> | null = null;
 
 	constructor();
 	constructor(m: Model3D);
@@ -15,6 +19,7 @@ export class Model3D {
 			for (const p of m.parts) {
 				this.parts.push(new PolygonStrip3D(p));
 			}
+			this.bspTree = m.bspTree;
 		}
 	}
 
@@ -43,6 +48,24 @@ export class Model3D {
 				this.parts.at(-1)!.setColor(...colors[i]);
 			}
 		}
+	}
+
+	makeBSPTree(rootPolygonIndex: number, rootPolygonSubIndex: number = 0) {
+		if (this.bspTree !== null) {
+			this.bspTree = null;
+		}
+
+		const polygons: Coordinate3d[][] = this.getPolygons();
+
+		const nodeData: BSPTreeType = [];
+		for (let i = 0; i < polygons.length; i++) {
+			for (let j = 0; j < polygons[i].length; j++) {
+				nodeData.push({index: i, subIndex: j});
+			}
+		}
+
+		this.bspTree = new BinaryTree<BSPTreeType>(nodeData);
+		this.setBSPChildren(this.bspTree, rootPolygonIndex, rootPolygonSubIndex);
 	}
 
 	renderFrame(p: p5,
@@ -85,17 +108,33 @@ export class Model3D {
 		}
 	}
 
-	render() {
-		const polygons: Coordinate3d[][] = []
+	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
+		const polygons: Coordinate3d[][] = [];
 
 		for (let i = 0; i < this.parts.length; i++) {
 			polygons.push(this.parts[i].getPolygons());
 		}
+
+
 	}
 
 	affine(m: Matrix<4, 4>) {
 		for (const part of this.parts) {
 			part.affine(m);
 		}
+	}
+
+	private getPolygons(): Coordinate3d[][] {
+		const polygons: Coordinate3d[][] = [];
+
+		for (let i = 0; i < this.parts.length; i++) {
+			polygons.push(this.parts[i].getPolygons());
+		}
+
+		return polygons;
+	}
+
+	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0) {
+		
 	}
 }

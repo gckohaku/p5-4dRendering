@@ -4,7 +4,7 @@ import type p5 from "p5";
 
 export class PolygonStrip3D {
 	vertexes: Coordinate3d[];
-	color: { r: number, g: number, b: number } = { r: 0, g: 128, b: 0 };
+	color: ColorRGBArray = [0, 128, 0];
 
 	constructor(polyStrip3d: PolygonStrip3D);
 	constructor(vertexes: Coordinate3d[]);
@@ -23,14 +23,14 @@ export class PolygonStrip3D {
 
 	setColor(r: number, g: number, b: number) {
 		const c = this.color;
-		c.r = r;
-		c.g = g;
-		c.b = b; 
+		c[0] = r;
+		c[1] = g;
+		c[2] = b;
 	}
 
 	getPolygons(): Coordinate3d[] {
 		const retArray: Coordinate3d[] = structuredClone(this.vertexes);
-		
+
 		return retArray;
 	}
 
@@ -56,7 +56,7 @@ export class PolygonStrip3D {
 			p.stroke(strokeColor.r, strokeColor.g, strokeColor.b);
 		}
 
-		p.fill(this.color.r, this.color.g, this.color.b);
+		p.fill(this.color[0], this.color[1], this.color[2]);
 
 		const v = this.vertexes;
 
