@@ -34,6 +34,15 @@ export class PolygonStrip3D {
 		return retArray;
 	}
 
+	getPolygonOfIndex(index: number): [Coordinate3d, Coordinate3d, Coordinate3d] {
+		if (index + 2 >= this.vertexes.length) {
+			throw new Error(`Error in PolygonStrip3D.getPolygonsOfIndex(): polygon of specified index don't exists.`);
+		}
+
+		const v = this.vertexes;
+		return [v[index], v[index + 1], v[index + 2]];
+	}
+
 	renderFrame(p: p5,
 		{
 			center = [0, 0],

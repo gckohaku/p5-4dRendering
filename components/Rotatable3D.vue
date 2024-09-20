@@ -24,6 +24,7 @@ onMounted(async () => {
 			makeCoordinate3d(-50, -50, -50),
 		];
 
+		// ポリゴンの順番を右手系基準に変える必要がある
 		const parts: number[][] = [
 			[0, 1, 3, 2],
 			[1, 5, 2, 6],

@@ -2,6 +2,7 @@ import { PolygonStrip3D, type Coordinate3d } from "#imports";
 import type p5 from "p5";
 import type { ColorRGBArray } from "./TypeUtilities";
 import { BinaryTree } from "./BinaryTree";
+import { abs, cross, divide, subtract } from "mathjs";
 
 type BSPTreeType = {index: number, subIndex: number}[];
 
@@ -135,6 +136,12 @@ export class Model3D {
 	}
 
 	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0) {
-		
+		const rootVertexes = this.parts[rootIndex].getPolygonOfIndex(rootSubIndex);
+		const rootNormalVector: number[] = cross(subtract(rootVertexes[1], rootVertexes[0]), subtract(rootVertexes[2], rootVertexes[1])) as number[];
+		const rootNormalizedNormalVector: number[] = divide(rootNormalVector, abs(rootNormalVector)) as number[];
+
+		for (const indexes of node.data) {
+
+		}
 	}
 }
