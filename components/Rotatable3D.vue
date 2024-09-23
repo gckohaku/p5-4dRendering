@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { chain, concat, cot, divide, pi, unit } from "mathjs";
+import { chain, concat, cot, divide, mean, pi, unit } from "mathjs";
 import type p5 from "p5";
+import App from "~/app.vue";
 import { type Coordinate3d, makeCoordinate3d } from "~/utils/defines/MatrixCoordinateTypes";
 import type { Matrix } from "~/utils/defines/MatrixTypes";
 import { makeRotate3DMatrix44 } from "~/utils/defines/MatrixUtilities";
 import type { ColorRGBArray } from "~/utils/defines/TypeUtilities";
 
 onMounted(async () => {
-	const { default: p5 } = await import("p5")
+	const { default: p5 } = await import("p5");
 
 	const sketch = (p: p5) => {
 		const canvasSize = [600, 600];
@@ -37,7 +38,7 @@ onMounted(async () => {
 		const colors: ColorRGBArray[] = [
 			[255, 0, 0],
 			[0, 255, 0],
-			[128, 0, 0], 
+			[128, 0, 0],
 			[0, 128, 0],
 			[0, 0, 255],
 			[0, 0, 128],
@@ -47,15 +48,11 @@ onMounted(async () => {
 			throw new Error(`parts の長さと colors の長さが不一致\nparts.length: ${parts.length}\ncolors.length: ${colors.length}`);
 		}
 
-		const pos1: Coordinate3d = makeCoordinate3d(0, 50, 0);
-		const pos2: Coordinate3d = makeCoordinate3d(50, 0, 0);
-		const pos3: Coordinate3d = makeCoordinate3d(0, 0, -50);
-		const pos4: Coordinate3d = makeCoordinate3d(0, -50, 0);
-
-		const poly = new PolygonStrip3D([pos1, pos2, pos3, pos4]);
 		const model = new Model3D();
 		model.setVertexes(vertexes);
 		model.setParts(parts, colors);
+		model.makeBSPTree(0);
+		console.log(model.bspTree?.toString());
 
 		const rotateXId = "rotate-x-control";
 		const rotateYId = "rotate-y-control";
@@ -68,6 +65,14 @@ onMounted(async () => {
 		const sizeZId = "size-z-control";
 
 		p.setup = () => {
+			if (import.meta.dev) {
+				const oldWrapper = p.select(".control-wrapper");
+
+				if (oldWrapper) {
+					oldWrapper.remove();
+				}
+			}
+
 			p.createCanvas(600, 600).parent("canvas");
 			const wrapperDiv = p.createDiv();
 			wrapperDiv.addClass("control-wrapper");
@@ -131,7 +136,6 @@ onMounted(async () => {
 
 			const transformMatrix: Matrix<4, 4> = chain(parallelMatrix).multiply(rotateMatrix).multiply(sizeMatrix).done();
 
-			const renderPoly = new PolygonStrip3D(poly);
 			const renderModel = new Model3D(model);
 
 			const focalLength: number = 300 * cot(pi * 23 / 180);
@@ -148,6 +152,7 @@ onMounted(async () => {
 			renderModel.affine(transformMatrix);
 
 			renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
+			// renderModel.render(p, cameraMatrix, externalMatrix);
 			// renderModel.renderFrame(p, { center: center, strokeColor: "green", subGridColor: "rgba(96, 32, 0)", subGridAlpha: 0 });
 		}
 	}

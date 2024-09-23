@@ -2,7 +2,7 @@ import { PolygonStrip3D, type Coordinate3d } from "#imports";
 import type p5 from "p5";
 import type { ColorRGBArray } from "./TypeUtilities";
 import { BinaryTree } from "./BinaryTree";
-import { abs, cross, divide, subtract } from "mathjs";
+import { abs, absDependencies, cross, divide, dot, mean, norm, subtract, type MathType } from "mathjs";
 
 type BSPTreeType = {index: number, subIndex: number}[];
 
@@ -60,7 +60,7 @@ export class Model3D {
 
 		const nodeData: BSPTreeType = [];
 		for (let i = 0; i < polygons.length; i++) {
-			for (let j = 0; j < polygons[i].length; j++) {
+			for (let j = 0; j < polygons[i].length - 2; j++) {
 				nodeData.push({index: i, subIndex: j});
 			}
 		}
@@ -110,13 +110,11 @@ export class Model3D {
 	}
 
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
-		const polygons: Coordinate3d[][] = [];
+		const polygons: Coordinate3d[][] = this.getPolygons();
 
-		for (let i = 0; i < this.parts.length; i++) {
-			polygons.push(this.parts[i].getPolygons());
+		for (const part of this.parts) {
+			part.render(p, cameraMatrix, externalMatrix);
 		}
-
-
 	}
 
 	affine(m: Matrix<4, 4>) {
@@ -136,12 +134,43 @@ export class Model3D {
 	}
 
 	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0) {
+		console.log("test");
 		const rootVertexes = this.parts[rootIndex].getPolygonOfIndex(rootSubIndex);
-		const rootNormalVector: number[] = cross(subtract(rootVertexes[1], rootVertexes[0]), subtract(rootVertexes[2], rootVertexes[1])) as number[];
-		const rootNormalizedNormalVector: number[] = divide(rootNormalVector, abs(rootNormalVector)) as number[];
+		const rootNormalVector = getNormalVector(rootVertexes);
+		const rootNormalizedNormalVector: number[] = divide(rootNormalVector, norm(rootNormalVector)) as number[];
+
+		const rootAveragePos = mean([...rootVertexes], 0) as MathType as number[];
+
+		const leftData: BSPTreeType = [];
+		const rightData: BSPTreeType = [];
 
 		for (const indexes of node.data) {
+			if (indexes.index === rootIndex && indexes.subIndex === rootSubIndex) {
+				continue;
+			}
+			const poly = this.parts[indexes.index].getPolygonOfIndex(indexes.subIndex);
+			const polyNormalVector = getNormalVector(poly);
+			const polyNormalizedNormalVector: number[] = divide(polyNormalVector, norm(polyNormalVector)) as number[];
 
+			const polyAveragePos = mean([...poly], 0) as MathType as number[];
+
+			if (dot(subtract(polyAveragePos, rootAveragePos).slice(0, 3), polyNormalVector) >= 0) {
+				leftData.push({index: indexes.index, subIndex: indexes.subIndex});
+			}
+			else {
+				rightData.push({index: indexes.index, subIndex: indexes.subIndex});
+			}
+		}
+
+		if (leftData.length) {
+			node.addLeft(leftData);
+			const firstIndexes = leftData[0];
+			this.setBSPChildren(node.left!, firstIndexes.index, firstIndexes.subIndex);
+		}
+		if (rightData.length) {
+			node.addRight(rightData);
+			const firstIndexes = rightData[0];
+			this.setBSPChildren(node.right!, firstIndexes.index, firstIndexes.subIndex);
 		}
 	}
 }

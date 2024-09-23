@@ -12,6 +12,7 @@ export class PolygonStrip3D {
 	constructor(arg: PolygonStrip3D | Coordinate3d[]) {
 		if (arg instanceof PolygonStrip3D) {
 			this.vertexes = [...arg.vertexes];
+			this.color = [...arg.color];
 		}
 		else {
 			if (arg.length < 3) {
@@ -40,7 +41,13 @@ export class PolygonStrip3D {
 		}
 
 		const v = this.vertexes;
-		return [v[index], v[index + 1], v[index + 2]];
+
+		if (index % 2 === 0) {
+			return [v[index], v[index + 1], v[index + 2]];
+		}
+		else {
+			return [v[index], v[index + 2], v[index + 1]];
+		}
 	}
 
 	renderFrame(p: p5,
@@ -175,7 +182,10 @@ export class PolygonStrip3D {
 	}
 
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, center: [number, number, ...number[]] = [0, 0]) {
-		p.fill(0, 0, 0, 0);
+		const c = this.color;
+		console.log(c[0], c[1], c[2]);
+		p.fill(c[0], c[1], c[2]);
+		p.stroke(0, 0, 0, 0);
 
 		const v = this.vertexes;
 
@@ -188,7 +198,7 @@ export class PolygonStrip3D {
 			if (cameraZ >= 0) {
 				continue;
 			}
-			const screenPos = multiply(calibrationMatrix, transpose(v[i])) as number[];
+			const screenPos = chain(calibrationMatrix).multiply(transpose(v[i])).divide(-cameraZ).done() as number[];
 			renderV.push([screenPos[0], screenPos[1], screenPos[2]]);
 		}
 

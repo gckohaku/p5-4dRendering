@@ -37,4 +37,16 @@ export class BinaryTree<T> {
 	removeRight() {
 		this.right = null;
 	}
+
+	toString(str: string = "", depth: number = 0) {
+		let retStr: string = str;
+
+		console.log(this.data);
+
+		if (!this.left && !this.right) {
+			retStr += `[${this.data}]`;
+		}
+
+		return retStr;
+	}
 }
