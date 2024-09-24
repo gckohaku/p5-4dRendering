@@ -38,14 +38,19 @@ export class BinaryTree<T> {
 		this.right = null;
 	}
 
-	toString(str: string = "", depth: number = 0) {
-		let retStr: string = str;
+	toString(depth: number = 0) {
+		const indentSpace = "    ";
+		let retStr: string = indentSpace.repeat(depth) + "[\n";
 
-		console.log(this.data);
-
-		if (!this.left && !this.right) {
-			retStr += `[${this.data}]`;
+		if (this.left) {
+			retStr += this.left.toString(depth + 1);
 		}
+		retStr += indentSpace.repeat(depth + 1) + `${JSON.stringify(this.data)}\n`;
+		if (this.right) {
+			retStr += this.right.toString(depth + 1);
+		}
+
+		retStr += indentSpace.repeat(depth) + "]\n";
 
 		return retStr;
 	}

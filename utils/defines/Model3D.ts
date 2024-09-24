@@ -2,9 +2,10 @@ import { PolygonStrip3D, type Coordinate3d } from "#imports";
 import type p5 from "p5";
 import type { ColorRGBArray } from "./TypeUtilities";
 import { BinaryTree } from "./BinaryTree";
-import { abs, absDependencies, cross, divide, dot, mean, norm, subtract, type MathType } from "mathjs";
+import { chain, concat, divide, dot, mean, multiply, norm, subtract, unaryMinus, type MathType } from "mathjs";
+import { type Matrix } from "./MatrixTypes";
 
-type BSPTreeType = {index: number, subIndex: number}[];
+type BSPTreeType = { index: number, subIndex: number }[];
 
 export class Model3D {
 	vertexes: Coordinate3d[] = [];
@@ -61,7 +62,7 @@ export class Model3D {
 		const nodeData: BSPTreeType = [];
 		for (let i = 0; i < polygons.length; i++) {
 			for (let j = 0; j < polygons[i].length - 2; j++) {
-				nodeData.push({index: i, subIndex: j});
+				nodeData.push({ index: i, subIndex: j });
 			}
 		}
 
@@ -112,8 +113,24 @@ export class Model3D {
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
 		const polygons: Coordinate3d[][] = this.getPolygons();
 
-		for (const part of this.parts) {
-			part.render(p, cameraMatrix, externalMatrix);
+		const pointOfViewPolygon: Coordinate3d[] = [[0, 0, 0, 1], [1, -1, 0, 1], [1, 1, 0, 1]];
+
+		const calibrationMatrix: Matrix<3, 4> = multiply(cameraMatrix, externalMatrix) as Matrix<3, 4>;
+
+		const afterCalibrationPointOfView: Coordinate3d[] = [];
+
+		const cameraMoveMatrix = structuredClone(externalMatrix);
+		cameraMoveMatrix[0][3] *= -1;
+		cameraMoveMatrix[1][3] *= -1;
+		cameraMoveMatrix[2][3] *= -1;
+
+		const tree = this.bspTree;
+		for (const polygon of pointOfViewPolygon) {
+			afterCalibrationPointOfView.push(concat(multiply(cameraMoveMatrix, polygon), [1]) as Coordinate3d);
+		}
+
+		if (tree) {
+			this.recursiveRender(p, tree, cameraMatrix, externalMatrix, afterCalibrationPointOfView);
 		}
 	}
 
@@ -134,7 +151,6 @@ export class Model3D {
 	}
 
 	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0) {
-		console.log("test");
 		const rootVertexes = this.parts[rootIndex].getPolygonOfIndex(rootSubIndex);
 		const rootNormalVector = getNormalVector(rootVertexes);
 		const rootNormalizedNormalVector: number[] = divide(rootNormalVector, norm(rootNormalVector)) as number[];
@@ -154,11 +170,14 @@ export class Model3D {
 
 			const polyAveragePos = mean([...poly], 0) as MathType as number[];
 
-			if (dot(subtract(polyAveragePos, rootAveragePos).slice(0, 3), polyNormalVector) >= 0) {
-				leftData.push({index: indexes.index, subIndex: indexes.subIndex});
+			const distAvgVector: number[] = subtract(polyAveragePos, rootAveragePos);
+			const distNormalizedAvgVector: number[] = divide(distAvgVector, norm(distAvgVector)) as number[];
+
+			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
+				leftData.push({ index: indexes.index, subIndex: indexes.subIndex });
 			}
 			else {
-				rightData.push({index: indexes.index, subIndex: indexes.subIndex});
+				rightData.push({ index: indexes.index, subIndex: indexes.subIndex });
 			}
 		}
 
@@ -172,5 +191,21 @@ export class Model3D {
 			const firstIndexes = rightData[0];
 			this.setBSPChildren(node.right!, firstIndexes.index, firstIndexes.subIndex);
 		}
+
+		for (const indexes of node.data) {
+			if (indexes.index === rootIndex && indexes.subIndex === rootSubIndex) {
+				continue;
+			}
+
+			node.data.splice(node.data.indexOf(indexes));
+		}
+
+	}
+
+	private recursiveRender(p: p5, tree: BinaryTree<BSPTreeType>, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, pointOfViewPolygon: Coordinate3d[]) {
+		const index = tree.data[0].index;
+		const subIndex = tree.data[0].subIndex;
+
+		
 	}
 }

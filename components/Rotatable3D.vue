@@ -25,14 +25,13 @@ onMounted(async () => {
 			makeCoordinate3d(-50, -50, -50),
 		];
 
-		// ポリゴンの順番を右手系基準に変える必要がある
 		const parts: number[][] = [
-			[0, 1, 3, 2],
-			[1, 5, 2, 6],
-			[5, 4, 6, 7],
-			[4, 0, 7, 3],
-			[4, 5, 0, 1],
-			[3, 2, 7, 6],
+			[0, 3, 1, 2],
+			[1, 2, 5, 6],
+			[5, 6, 4, 7],
+			[4, 7, 0, 3],
+			[4, 0, 5, 1],
+			[3, 7, 2, 6],
 		];
 
 		const colors: ColorRGBArray[] = [
@@ -151,8 +150,8 @@ onMounted(async () => {
 
 			renderModel.affine(transformMatrix);
 
-			renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
-			// renderModel.render(p, cameraMatrix, externalMatrix);
+			// renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
+			renderModel.render(p, cameraMatrix, externalMatrix);
 			// renderModel.renderFrame(p, { center: center, strokeColor: "green", subGridColor: "rgba(96, 32, 0)", subGridAlpha: 0 });
 		}
 	}
