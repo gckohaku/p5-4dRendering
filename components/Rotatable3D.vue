@@ -43,6 +43,37 @@ onMounted(async () => {
 			[0, 0, 128],
 		];
 
+		const nextVertexes: Coordinate3d[] = [
+			makeCoordinate3d(0, 100, 0), // 0
+			makeCoordinate3d(0, 0, 0),
+			makeCoordinate3d(-30, -100, 30),
+			makeCoordinate3d(30, -100, 30),
+			makeCoordinate3d(30, -100, -30),
+			makeCoordinate3d(-30, -100, -30), // 5
+		];
+
+		const nextParts: number[][] = [
+			[0, 2, 3],
+			[0, 3, 4],
+			[0, 4, 5],
+			[0, 5, 2],
+			[1, 3, 2],
+			[1, 4, 3],
+			[1, 5, 4],
+			[1, 2, 5],
+		];
+
+		const nextColors: ColorRGBArray[] = [
+			[255, 0, 0],
+			[0, 255, 0],
+			[0, 0, 255],
+			[255, 0, 255],
+			[192, 0, 0],
+			[0, 192, 0],
+			[0, 0, 192],
+			[192, 0, 192],
+		]
+
 		if (parts.length !== colors.length) {
 			throw new Error(`parts の長さと colors の長さが不一致\nparts.length: ${parts.length}\ncolors.length: ${colors.length}`);
 		}

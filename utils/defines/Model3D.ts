@@ -111,7 +111,7 @@ export class Model3D {
 	}
 
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
-		p.stroke(0, 0, 0, 255);
+		p.stroke(0, 0, 0, 0);
 
 		const polygons: Coordinate3d[][] = this.getPolygons();
 
@@ -228,15 +228,13 @@ export class Model3D {
 
 			for (let i = 0; i < targetPolygon.length; i++) {
 				const renderVertex = chain(cameraMatrix as MathCollection).multiply(externalMatrix).multiply(transpose(targetPolygon[i])).done() as number[];
-				renderPolygon.push(divide(renderVertex, -renderVertex[3]) as number[]);
-			}
-
-			console.log(renderPolygon.length);
+				renderPolygon.push(divide(renderVertex, -renderVertex[2]) as number[]);
+			};
 
 			p.beginShape();
 			for (let i = 0; i < renderPolygon.length; i++) {
 				const poly = renderPolygon[i];
-				p.vertex(poly[0], poly[1]);
+				p.vertex(poly[0], -poly[1]);
 			}
 			p.endShape(p.CLOSE);
 
