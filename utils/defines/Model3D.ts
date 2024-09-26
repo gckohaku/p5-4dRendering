@@ -1,9 +1,9 @@
-import { PolygonStrip3D, type Coordinate3d } from "#imports";
+import { type MathCollection, type MathType, chain, concat, divide, dot, map, matrix, mean, multiply, norm, subtract, transpose } from "mathjs";
 import type p5 from "p5";
-import type { ColorRGBArray } from "./TypeUtilities";
+import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
-import { chain, concat, divide, dot, mean, multiply, norm, subtract, unaryMinus, type MathType } from "mathjs";
-import { type Matrix } from "./MatrixTypes";
+import type { Matrix } from "./MatrixTypes";
+import type { ColorRGBArray } from "./TypeUtilities";
 
 type BSPTreeType = { index: number, subIndex: number }[];
 
@@ -46,7 +46,7 @@ export class Model3D {
 				vs.push(this.vertexes[indexes[j]]);
 			}
 			this.parts.push(new PolygonStrip3D([...vs]));
-			if (colors && colors[i]) {
+			if (colors?.[i]) {
 				this.parts.at(-1)!.setColor(...colors[i]);
 			}
 		}
@@ -111,6 +111,8 @@ export class Model3D {
 	}
 
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
+		p.stroke(0, 0, 0, 255);
+
 		const polygons: Coordinate3d[][] = this.getPolygons();
 
 		const pointOfViewPolygon: Coordinate3d[] = [[0, 0, 0, 1], [1, -1, 0, 1], [1, 1, 0, 1]];
@@ -206,6 +208,49 @@ export class Model3D {
 		const index = tree.data[0].index;
 		const subIndex = tree.data[0].subIndex;
 
-		
+		const targetPolygon = this.parts[index].getPolygonOfIndex(subIndex);
+		const averageTargetVertexPos = mean([...targetPolygon], 0) as MathType as number[];
+
+		const polyVecToPointOfView: number[] = subtract(pointOfViewPolygon[0].slice(0, 3), averageTargetVertexPos.slice(0, 3));
+
+		const targetNormalVec = getNormalVector(targetPolygon);
+
+		const dotTargetAndPointOfView = dot(polyVecToPointOfView, targetNormalVec);
+
+		if (dotTargetAndPointOfView > 0) {
+			if (tree.right) {
+				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon);
+			}
+
+			p.fill(...this.parts[index].color);
+
+			const renderPolygon: number[][] = []
+
+			for (let i = 0; i < targetPolygon.length; i++) {
+				const renderVertex = chain(cameraMatrix as MathCollection).multiply(externalMatrix).multiply(transpose(targetPolygon[i])).done() as number[];
+				renderPolygon.push(divide(renderVertex, -renderVertex[3]) as number[]);
+			}
+
+			console.log(renderPolygon.length);
+
+			p.beginShape();
+			for (let i = 0; i < renderPolygon.length; i++) {
+				const poly = renderPolygon[i];
+				p.vertex(poly[0], poly[1]);
+			}
+			p.endShape(p.CLOSE);
+
+			if (tree.left) {
+				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon);
+			}
+		}
+		else {
+			if (tree.left) {
+				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon);
+			}
+			if (tree.right) {
+				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon);
+			}
+		}
 	}
 }
