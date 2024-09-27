@@ -44,34 +44,29 @@ onMounted(async () => {
 		];
 
 		const nextVertexes: Coordinate3d[] = [
-			makeCoordinate3d(0, 100, 0), // 0
+			makeCoordinate3d(-60, 0, 0), // 0
 			makeCoordinate3d(0, 0, 0),
-			makeCoordinate3d(-30, -100, 30),
-			makeCoordinate3d(30, -100, 30),
-			makeCoordinate3d(30, -100, -30),
-			makeCoordinate3d(-30, -100, -30), // 5
+			makeCoordinate3d(0, 30, 0),
+			makeCoordinate3d(60, -15, 40),
+			makeCoordinate3d(60, -15, -40), // 4
 		];
 
 		const nextParts: number[][] = [
-			[0, 2, 3],
-			[0, 3, 4],
-			[0, 4, 5],
-			[0, 5, 2],
-			[1, 3, 2],
-			[1, 4, 3],
-			[1, 5, 4],
-			[1, 2, 5],
+			[0, 3, 2],
+			[0, 2, 4],
+			[4, 1, 0],
+			[1, 3, 0],
+			[2, 3, 1],
+			[2, 1, 4]
 		];
 
 		const nextColors: ColorRGBArray[] = [
 			[255, 0, 0],
 			[0, 255, 0],
 			[0, 0, 255],
-			[255, 0, 255],
+			[255, 128, 0],
 			[192, 0, 0],
 			[0, 192, 0],
-			[0, 0, 192],
-			[192, 0, 192],
 		]
 
 		if (parts.length !== colors.length) {
@@ -79,8 +74,8 @@ onMounted(async () => {
 		}
 
 		const model = new Model3D();
-		model.setVertexes(vertexes);
-		model.setParts(parts, colors);
+		model.setVertexes(nextVertexes);
+		model.setParts(nextParts, nextColors);
 		model.makeBSPTree(0);
 		console.log(model.bspTree?.toString());
 
