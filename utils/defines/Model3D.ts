@@ -1,4 +1,4 @@
-import { type MathCollection, type MathType, chain, concat, divide, dot, map, matrix, mean, multiply, norm, subtract, transpose } from "mathjs";
+import { type MathCollection, type MathType, abs, acos, chain, concat, divide, dot, inv, map, matrix, mean, multiply, norm, pow, subtract, transpose } from "mathjs";
 import type p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
@@ -110,7 +110,13 @@ export class Model3D {
 		}
 	}
 
-	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>) {
+	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>,
+		{
+			standardLuminousDistance = 100
+		}: {
+			standardLuminousDistance?: number;
+		} = {}
+	) {
 		p.stroke(0, 0, 0, 0);
 
 		const polygons: Coordinate3d[][] = this.getPolygons();
@@ -132,7 +138,7 @@ export class Model3D {
 		}
 
 		if (tree) {
-			this.recursiveRender(p, tree, cameraMatrix, externalMatrix, afterCalibrationPointOfView);
+			this.recursiveRender(p, tree, cameraMatrix, externalMatrix, afterCalibrationPointOfView, standardLuminousDistance);
 		}
 	}
 
@@ -204,7 +210,7 @@ export class Model3D {
 
 	}
 
-	private recursiveRender(p: p5, tree: BinaryTree<BSPTreeType>, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, pointOfViewPolygon: Coordinate3d[]) {
+	private recursiveRender(p: p5, tree: BinaryTree<BSPTreeType>, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, pointOfViewPolygon: Coordinate3d[], standardLuminousDistance: number = 100) {
 		const index = tree.data[0].index;
 		const subIndex = tree.data[0].subIndex;
 
@@ -217,12 +223,17 @@ export class Model3D {
 
 		const dotTargetAndPointOfView = dot(polyVecToPointOfView, targetNormalVec);
 
+		const polyDistToPointOfView = norm(polyVecToPointOfView);
+		const polyAngleTowardsLuminous = acos(divide(dotTargetAndPointOfView, multiply(polyDistToPointOfView, norm(targetNormalVec))) as number);
+
 		if (dotTargetAndPointOfView > 0) {
 			if (tree.right) {
-				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon);
+				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon, standardLuminousDistance);
 			}
 
-			p.fill(...this.parts[index].color);
+			const illuminanceDistFactor: number = inv(pow(divide(polyDistToPointOfView, standardLuminousDistance), 2) as number);
+			const illuminanceAngleFactor: number = divide(dot([0, 0, 1], targetNormalVec), norm(targetNormalVec)) as number;
+			p.fill(...chain(this.parts[index].color).multiply(0.5 + illuminanceAngleFactor * 0.5).done());
 
 			const renderPolygon: number[][] = []
 
@@ -239,15 +250,15 @@ export class Model3D {
 			p.endShape(p.CLOSE);
 
 			if (tree.left) {
-				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon);
+				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon, standardLuminousDistance);
 			}
 		}
 		else {
 			if (tree.left) {
-				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon);
+				this.recursiveRender(p, tree.left, cameraMatrix, externalMatrix, pointOfViewPolygon, standardLuminousDistance);
 			}
 			if (tree.right) {
-				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon);
+				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon, standardLuminousDistance);
 			}
 		}
 	}

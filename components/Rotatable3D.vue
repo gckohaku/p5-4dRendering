@@ -35,12 +35,12 @@ onMounted(async () => {
 		];
 
 		const colors: ColorRGBArray[] = [
-			[255, 0, 0],
 			[0, 255, 0],
-			[128, 0, 0],
-			[0, 128, 0],
-			[0, 0, 255],
-			[0, 0, 128],
+			[0, 255, 0],
+			[0, 255, 0],
+			[0, 255, 0],
+			[0, 255, 0],
+			[0, 255, 0],
 		];
 
 		const nextVertexes: Coordinate3d[] = [
@@ -65,8 +65,8 @@ onMounted(async () => {
 			[0, 255, 0],
 			[0, 0, 255],
 			[255, 128, 0],
-			[192, 0, 0],
-			[0, 192, 0],
+			[192, 0, 192],
+			[0, 192, 192],
 		]
 
 		if (parts.length !== colors.length) {
@@ -177,7 +177,7 @@ onMounted(async () => {
 			renderModel.affine(transformMatrix);
 
 			// renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
-			renderModel.render(p, cameraMatrix, externalMatrix);
+			renderModel.render(p, cameraMatrix, externalMatrix, {standardLuminousDistance: 450});
 			// renderModel.renderFrame(p, { center: center, strokeColor: "green", subGridColor: "rgba(96, 32, 0)", subGridAlpha: 0 });
 		}
 	}
