@@ -233,7 +233,7 @@ export class Model3D {
 
 			const illuminanceDistFactor: number = inv(pow(divide(polyDistToPointOfView, standardLuminousDistance), 2) as number);
 			const illuminanceAngleFactor: number = divide(dot([0, 0, 1], targetNormalVec), norm(targetNormalVec)) as number;
-			p.fill(...chain(this.parts[index].color).multiply(0.5 + illuminanceAngleFactor * 0.5).done());
+			p.fill(...chain(this.parts[index].color).multiply(0.4 + illuminanceAngleFactor * 0.6).done());
 
 			const renderPolygon: number[][] = []
 
