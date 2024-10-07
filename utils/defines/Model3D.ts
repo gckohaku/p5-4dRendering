@@ -1,4 +1,4 @@
-import { type MathCollection, type MathType, abs, acos, chain, concat, divide, dot, inv, map, matrix, mean, multiply, norm, pow, subtract, transpose } from "mathjs";
+import { type MathCollection, type MathType, abs, acos, chain, concat, cross, divide, dot, inv, map, matrix, mean, multiply, norm, pow, subtract, transpose } from "mathjs";
 import type p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
@@ -180,6 +180,9 @@ export class Model3D {
 
 			const distAvgVector: number[] = subtract(polyAveragePos, rootAveragePos);
 			const distNormalizedAvgVector: number[] = divide(distAvgVector, norm(distAvgVector)) as number[];
+
+			// ポリゴンの再分割が必要かの判定
+			const intersectionLineVec = cross(rootNormalVector, polyNormalVector) as number[];
 
 			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
 				leftData.push({ index: indexes.index, subIndex: indexes.subIndex });
