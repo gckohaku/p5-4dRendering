@@ -182,7 +182,10 @@ export class Model3D {
 			const distNormalizedAvgVector: number[] = divide(distAvgVector, norm(distAvgVector)) as number[];
 
 			// ポリゴンの再分割が必要かの判定
-			const intersectionLineVec = cross(rootNormalVector, polyNormalVector) as number[];
+			// const intersectionLineVec = cross(rootNormalVector, polyNormalVector) as number[];
+			if (this.isRequiredSubdividing(rootNormalVector, polyNormalVector, rootVertexes, poly)) {
+
+			}
 
 			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
 				leftData.push({ index: indexes.index, subIndex: indexes.subIndex });
@@ -264,5 +267,54 @@ export class Model3D {
 				this.recursiveRender(p, tree.right, cameraMatrix, externalMatrix, pointOfViewPolygon, standardLuminousDistance);
 			}
 		}
+	}
+
+	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): boolean {
+		// eps 以下は 0 として扱う (浮動小数点数計算では誤差が出るため)
+		const eps = 1e-15;
+
+		const intersectionLineVec = cross(rootNormalVec, targetNormalVec) as number[];
+
+		// 外積の結果が 0 の場合は平行なので、交差しえない
+		if (intersectionLineVec[0] <= eps && intersectionLineVec[1] <= eps && intersectionLineVec[2] <= eps) {
+			return false;
+		}
+
+		const intersectionLinePoint = this.calcInterSectionLinePoint(rootNormalVec, targetNormalVec, rootPoly, targetPoly, intersectionLineVec, eps);
+
+		return false;
+	}
+
+	/**
+	 * 交線を通る座標の位置ベクトルを計算する\
+	 * この関数を利用するには、二つのベクトルが平行でない必要がある
+	 * @param rootNormalVec 
+	 * @param targetNormalVec 
+	 * @param rootPoly 
+	 * @param targetPoly 
+	 * @param intersectionLineVec 交線の方向ベクトル
+	 * @param eps この値以下を 0 として扱う
+	 * @returns 交線を通る座標の位置ベクトル
+	 */
+	private calcInterSectionLinePoint(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[], intersectionLineVec: number[], eps: number): number[] {
+		const intersectionLinePoint = [0, 0, 0];
+
+		const dRoot = rootNormalVec[0] * rootPoly[0][0] + rootNormalVec[1] * rootPoly[0][1] + rootNormalVec[2] * rootPoly[0][2];
+		const dTarget = targetNormalVec[0] * targetPoly[0][0] + targetNormalVec[1] * targetPoly[0][1] + targetNormalVec[2] * targetPoly[0][2];
+
+		if (intersectionLineVec[2] > eps) {
+			intersectionLinePoint[0] = (targetNormalVec[1] * dRoot - rootNormalVec[1] * dTarget) / intersectionLineVec[2];
+			intersectionLinePoint[1] = (targetNormalVec[0] * dRoot - rootNormalVec[0] * dTarget) / (-intersectionLineVec[2]);
+		}
+		else if (intersectionLineVec[1] > eps) {
+			intersectionLinePoint[0] = (targetNormalVec[2] * dRoot - rootNormalVec[2] * dTarget) / (-intersectionLineVec[1]);
+			intersectionLinePoint[2] = (targetNormalVec[0] * dRoot - rootNormalVec[0] * dTarget) / intersectionLineVec[1];
+		}
+		else if (intersectionLineVec[0] > eps) {
+			intersectionLinePoint[1] = (targetNormalVec[2] * dRoot - rootNormalVec[2] * dTarget) / intersectionLineVec[0];
+			intersectionLinePoint[2] = (targetNormalVec[1] * dRoot - rootNormalVec[1] * dTarget) / (-intersectionLineVec[0]);
+		}
+
+		return intersectionLinePoint;
 	}
 }
