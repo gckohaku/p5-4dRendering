@@ -184,7 +184,7 @@ export class Model3D {
 			// ポリゴンの再分割が必要かの判定
 			// const intersectionLineVec = cross(rootNormalVector, polyNormalVector) as number[];
 			if (this.isRequiredSubdividing(rootNormalVector, polyNormalVector, rootVertexes, poly)) {
-
+				console.log(`needs to subdivision at [${rootIndex}, ${rootSubIndex}]`);
 			}
 
 			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
@@ -269,20 +269,43 @@ export class Model3D {
 		}
 	}
 
-	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): boolean {
+	/**
+	 * ポリゴンの再分割が必要かを判定
+	 * @param rootNormalVec 
+	 * @param targetNormalVec 
+	 * @param rootPoly 
+	 * @param targetPoly 
+	 * @returns 再分割の必要が無いなら false 再分割が必要なら再分割線の座標
+	 */
+	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | number[][] {
 		// eps 以下は 0 として扱う (浮動小数点数計算では誤差が出るため)
-		const eps = 1e-15;
+		const eps = 1e-14;
 
 		const intersectionLineVec = cross(rootNormalVec, targetNormalVec) as number[];
 
 		// 外積の結果が 0 の場合は平行なので、交差しえない
-		if (intersectionLineVec[0] <= eps && intersectionLineVec[1] <= eps && intersectionLineVec[2] <= eps) {
+		if (abs(intersectionLineVec[0]) <= eps && abs(intersectionLineVec[1]) <= eps && abs(intersectionLineVec[2]) <= eps) {
+			console.log("parallel");
 			return false;
 		}
 
 		const intersectionLinePoint = this.calcInterSectionLinePoint(rootNormalVec, targetNormalVec, rootPoly, targetPoly, intersectionLineVec, eps);
 
-		return false;
+		const crossToIntersectionVec: number[][] = [];
+
+		for (let i = 0; i < targetPoly.length; i++) {
+			const crossResult = cross(intersectionLineVec, subtract(targetPoly[i].slice(0, 3), intersectionLinePoint));
+			crossToIntersectionVec.push(map(crossResult, (value) => (abs(value) <= eps) ? 0 : value) as number[]);
+		}
+
+		if (
+			this.isMatchSignOfVector(crossToIntersectionVec[0], crossToIntersectionVec[1]) &&
+			this.isMatchSignOfVector(crossToIntersectionVec[1], crossToIntersectionVec[2])
+		) {
+			return false;
+		}
+
+		return [[0]];
 	}
 
 	/**
@@ -316,5 +339,25 @@ export class Model3D {
 		}
 
 		return intersectionLinePoint;
+	}
+
+	/**
+	 * ベクトルの符号が一致しているかを判定する
+	 * @param vec1 
+	 * @param vec2 
+	 * @returns 符号が一致していれば true 、そうでなければ false
+	 */
+	private isMatchSignOfVector(vec1: number[], vec2: number[]): boolean {
+		console.log("    ", vec1, vec2)
+		if ((vec1[0] > 0 && vec2[0] < 0) || (vec1[0] < 0 && vec2[0] > 0)) {
+			return false;
+		}
+		if ((vec1[1] > 0 && vec2[1] < 0) || (vec1[1] < 0 && vec2[1] > 0)) {
+			return false;
+		}
+		if ((vec1[0] > 0 && vec2[0] < 0) || (vec1[0] < 0 && vec2[0] > 0)) {
+			return false;
+		}
+		return true;
 	}
 }
