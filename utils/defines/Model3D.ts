@@ -1,5 +1,5 @@
-import { type MathCollection, type MathType, abs, acos, chain, concat, cross, divide, dot, inv, map, matrix, mean, multiply, norm, pow, subtract, transpose } from "mathjs";
-import type p5 from "p5";
+import { type MathCollection, type MathType, abs, acos, chain, concat, cross, divide, dot, dotPow, inv, map, matrix, mean, multiply, norm, pow, subtract, sum, transpose } from "mathjs";
+import p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
 import type { Matrix } from "./MatrixTypes";
@@ -305,6 +305,8 @@ export class Model3D {
 			return false;
 		}
 
+		this.findPolygonDivisionPoint(intersectionLineVec, intersectionLinePoint, targetPoly, eps);
+
 		return [[0]];
 	}
 
@@ -359,5 +361,33 @@ export class Model3D {
 			return false;
 		}
 		return true;
+	}
+
+	private findPolygonDivisionPoint(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number) {
+		/*
+		変数名はこの導出の変数に沿う
+		https://www.mathcha.io/editor/oMjp3H1LFkXh8kW5yXFrPPvkecjqz86GCqkpLpK
+		*/
+		const p_1 = intersectionLinePoint;
+		const a_1 = intersectionLineVec;
+		// l_2 側は線分が3つあるので、配列で表す
+		const p_2 = [polygon[0].slice(0, 3), polygon[1].slice(0, 3), polygon[2].slice(0, 3)];
+		const a_2 = [
+			subtract(p_2[1], p_2[0]),
+			subtract(p_2[2], p_2[1]),
+			subtract(p_2[0], p_2[2]),
+		]
+
+		const m_1 = sum(dotPow(a_1, 2));
+		const m_2: number[] = [];
+		for (let i = 0; i < p_2.length; i++) {
+			m_2.push(
+				chain(multiply(a_1[0], subtract(p_1[0], p_2[i][0])))
+					.add(multiply(a_1[1], subtract(p_1[1], p_2[i][1])))
+					.add(multiply(a_1[2], subtract(p_1[2], p_2[i][2])))
+					.done()
+			);
+		}
+		const n_1 = [sum(dotPow(a_2[0], 2)), sum(dotPow(a_2[1], 2)), sum(dotPow(a_2[2], 2))];
 	}
 }
