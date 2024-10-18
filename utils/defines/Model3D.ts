@@ -1,4 +1,4 @@
-import { type MathCollection, type MathType, abs, acos, chain, concat, cross, divide, dot, dotPow, inv, map, matrix, mean, multiply, norm, pow, subtract, sum, transpose } from "mathjs";
+import { type MathCollection, type MathType, abs, acos, add, chain, concat, cross, divide, dot, dotPow, inv, map, matrix, mean, multiply, norm, pow, subtract, sum, transpose, unaryMinus } from "mathjs";
 import p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
@@ -380,14 +380,59 @@ export class Model3D {
 
 		const m_1 = sum(dotPow(a_1, 2));
 		const m_2: number[] = [];
-		for (let i = 0; i < p_2.length; i++) {
-			m_2.push(
-				chain(multiply(a_1[0], subtract(p_1[0], p_2[i][0])))
-					.add(multiply(a_1[1], subtract(p_1[1], p_2[i][1])))
-					.add(multiply(a_1[2], subtract(p_1[2], p_2[i][2])))
-					.done()
-			);
-		}
+
 		const n_1 = [sum(dotPow(a_2[0], 2)), sum(dotPow(a_2[1], 2)), sum(dotPow(a_2[2], 2))];
+		const n_2: number[] = [];
+
+		const o: number[] = [];
+
+		const t: number[] = [];
+		const s: (number | "NaN")[] = [];
+
+		const l_1: (number | "NaN")[][] = [];
+		const l_2: (number | "NaN")[][] = [];
+
+		for (let i = 0; i < p_2.length; i++) {
+			m_2.push(add(
+				multiply(a_1[0], subtract(p_1[0], p_2[i][0])),
+				multiply(a_1[1], subtract(p_1[1], p_2[i][1])),
+				multiply(a_1[2], subtract(p_1[2], p_2[i][2]))
+			));
+
+			n_2.push(add(
+				multiply(a_1[0], subtract(p_2[i][0], p_1[0])),
+				multiply(a_1[1], subtract(p_2[i][1], p_1[1])),
+				multiply(a_1[2], subtract(p_2[i][2], p_1[2]))
+			));
+
+			o.push(unaryMinus(add(
+				multiply(a_1[0], a_2[i][0]),
+				multiply(a_1[1], a_2[i][1]),
+				multiply(a_1[2], a_2[i][2])
+			)));
+
+			t.push(divide(
+				subtract(multiply(m_1, n_2[i]), multiply(m_2[i], o[i])),
+				subtract(pow(o[i], 2), multiply(m_1, n_1[i]))
+			) as number);
+
+			s.push(unaryMinus(divide(
+				add(m_2, multiply(o[i], t[i])),
+				m_1
+			)) as number);
+
+			l_1.push(add(p_1, multiply(s[i], a_1)) as number);
+			l_2.push(add(p_2[i], multiply(t[i], a_2[i])) as number);
+		}
+
+		const intersectionOnPolyLine: number[] = [];
+		for (let i = 0; i < l_1.length; i++) {
+			if (l_1[i][0] !== "NaN") {
+				intersectionOnPolyLine.push(mean(l_1[i] as number[], l_2[i] as number[]) as number);
+			}
+			
+		}
+
+
 	}
 }
