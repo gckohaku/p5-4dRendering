@@ -305,9 +305,9 @@ export class Model3D {
 			return false;
 		}
 
-		this.findPolygonDivisionPoints(intersectionLineVec, intersectionLinePoint, targetPoly, eps);
+		const divisionPoints = this.findPolygonDivisionPoints(intersectionLineVec, intersectionLinePoint, targetPoly, eps);
 
-		return [[0]];
+		return this.makeDivisionPolygons(targetPoly, divisionPoints);
 	}
 
 	/**
@@ -362,7 +362,7 @@ export class Model3D {
 		return true;
 	}
 
-	private findPolygonDivisionPoints(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number): {positions: number[][], type: number} {
+	private findPolygonDivisionPoints(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number): {positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number} {
 		/*
 		変数名はこの導出の変数に沿う
 		https://www.mathcha.io/editor/oMjp3H1LFkXh8kW5yXFrPPvkecjqz86GCqkpLpK
@@ -482,6 +482,34 @@ export class Model3D {
 			}
 		}
 
-		return {positions: intersectionPoint, type: 0};
+		let type: (typeof this.findPolygonDivisionPoints extends (...args: any) => infer R ? R : never)["type"] = "triangleAndSquare";
+		let indexCode: number = 0;
+
+		if (isIntersectionOnVertex.includes(true)) {
+			type = "triangles";
+			indexCode = isIntersectionOnVertex.indexOf(true);
+		}
+		else {
+			indexCode = isIntersectionOnEdge.indexOf(false);
+		}
+
+		return {positions: intersectionPoint, type: type, indexCode: indexCode};
+	}
+
+	private makeDivisionPolygons(polygon: Coordinate3d[], info: {positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number}): number[][] {
+		const positions = info.positions;
+
+		if (info.type === "triangleAndSquare") {
+			if (info.indexCode === 1) {
+				[positions[0], positions[1]] = [positions[1], positions[0]];
+			}
+
+			const retPolygons: Coordinate3d[][] = [];
+			retPolygons.push([polygon[info.indexCode], concat(positions[0], [1]) as Coordinate3d, concat(positions[1], [1]) as Coordinate3d]);
+			
+			
+		}
+
+		return [[0]];
 	}
 }
