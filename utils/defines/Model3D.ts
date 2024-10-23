@@ -1,4 +1,4 @@
-import { type MathCollection, type MathType, abs, acos, add, chain, concat, cross, divide, dot, dotMultiply, dotPow, inv, map, matrix, mean, multiply, norm, pow, subtract, sum, transpose, unaryMinus } from "mathjs";
+import { type MathCollection, type MathType, abs, acos, add, chain, concat, cross, divide, dot, dotMultiply, dotPow, inv, map, matrix, mean, multiply, norm, pow, sign, subtract, sum, transpose, unaryMinus } from "mathjs";
 import p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
@@ -279,7 +279,7 @@ export class Model3D {
 	 */
 	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | number[][] {
 		// eps 以下は 0 として扱う (浮動小数点数計算では誤差が出るため)
-		const eps = 1e-14;
+		const eps = 1e-5;
 
 		const intersectionLineVec = cross(rootNormalVec, targetNormalVec) as number[];
 
@@ -305,7 +305,7 @@ export class Model3D {
 			return false;
 		}
 
-		this.findPolygonDivisionPoint(intersectionLineVec, intersectionLinePoint, targetPoly, eps);
+		this.findPolygonDivisionPoints(intersectionLineVec, intersectionLinePoint, targetPoly, eps);
 
 		return [[0]];
 	}
@@ -356,13 +356,13 @@ export class Model3D {
 		if ((vec1[1] > 0 && vec2[1] < 0) || (vec1[1] < 0 && vec2[1] > 0)) {
 			return false;
 		}
-		if ((vec1[0] > 0 && vec2[0] < 0) || (vec1[0] < 0 && vec2[0] > 0)) {
+		if ((vec1[2] > 0 && vec2[2] < 0) || (vec1[2] < 0 && vec2[2] > 0)) {
 			return false;
 		}
 		return true;
 	}
 
-	private findPolygonDivisionPoint(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number) {
+	private findPolygonDivisionPoints(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number): {positions: number[][], type: number} {
 		/*
 		変数名はこの導出の変数に沿う
 		https://www.mathcha.io/editor/oMjp3H1LFkXh8kW5yXFrPPvkecjqz86GCqkpLpK
@@ -385,11 +385,11 @@ export class Model3D {
 
 		const o: number[] = [];
 
-		const t: number[] = [];
-		const s: number[] = [];
+		const t: (number | null)[] = [];
+		const s: (number | null)[] = [];
 
-		const l_1: number[][] = [];
-		const l_2: number[][] = [];
+		const l_1: (number[] | null)[] = [];
+		const l_2: (number[] | null)[] = [];
 
 		for (let i = 0; i < p_2.length; i++) {
 			m_2.push(add(
@@ -410,29 +410,78 @@ export class Model3D {
 				multiply(a_1[2], a_2[i][2])
 			)));
 
-			t.push(divide(
-				subtract(multiply(m_1, n_2[i]), multiply(m_2[i], o[i])),
-				subtract(pow(o[i], 2), multiply(m_1, n_1[i]))
-			) as number);
+			if (divide(subtract(multiply(m_1, n_2[i]), multiply(m_2[i], o[i])), subtract(pow(o[i], 2), multiply(m_1, n_1[i]))) as number <= eps) {
+				t.push(null);
+			}
+			else {
+				t.push(divide(
+					subtract(multiply(m_1, n_2[i]), multiply(m_2[i], o[i])),
+					subtract(pow(o[i], 2), multiply(m_1, n_1[i]))
+				) as number);
+			}
 
-			s.push(unaryMinus(divide(
-				add(m_2[i], multiply(o[i], t[i])),
-				m_1
-			)) as number);
+			const current_t = t[i];
 
-			console.log(i, s, s[i], a_1);
-			l_1.push(add(p_1, dotMultiply(s[i], a_1)));
-			l_2.push(add(p_2[i], dotMultiply(t[i], a_2[i])));
+			if (current_t) {
+				const current_s = unaryMinus(divide(
+					add(m_2[i], multiply(o[i], current_t)),
+					m_1
+				)) as number;
 
-		}
+				s.push(current_s);
 
-		const intersectionOnPolyLine: number[][] = [];
-		for (let i = 0; i < l_1.length; i++) {
-			if (l_1[i][0]) {
-				intersectionOnPolyLine.push(mean([l_1[i], l_2[i]], 0) as MathType as number[]);
+				console.log(i, s, s[i], a_1);
+				l_1.push(add(p_1, dotMultiply(current_s, a_1)));
+				l_2.push(add(p_2[i], dotMultiply(current_t, a_2[i])));
 			}
 		}
 
-		
+		const intersectionOnPolyLine: (number[] | null)[] = [];
+		for (let i = 0; i < l_1.length; i++) {
+			const current_l_1i = l_1[i];
+			const current_l_2i = l_2[i];
+			if (current_l_1i && current_l_2i) {
+				intersectionOnPolyLine.push(mean([current_l_1i, current_l_2i], 0) as MathType as number[]);
+			}
+			else {
+				intersectionOnPolyLine.push(null);
+			}
+		}
+
+		const first = intersectionOnPolyLine[0];
+		const second = intersectionOnPolyLine[1];
+		const third = intersectionOnPolyLine[2];
+
+		const intersectionPoint: number[][] = [];
+
+		const isIntersectionOnEdge = [false, false, false];
+		const isIntersectionOnVertex = [false, false, false];
+
+		// if (first) {
+		// 	const edgeLength = subtract(polygon[1].slice(0, 3), polygon[0].slice(0, 3));
+		// 	const firstToIntersectionDistance = subtract(polygon[0].slice(0, 3), first);
+		// 	if (abs(edgeLength) < abs(firstToIntersectionDistance)) {
+		// 		isIntersectionOnEdge[0] = true;
+		// 	}
+		// }
+
+		for (let i = 0; i < intersectionOnPolyLine.length; i++) {
+			const current = intersectionOnPolyLine[i];
+
+			if (current) {
+				const edgeVec = subtract(polygon[i % intersectionOnPolyLine.length].slice(0, 3), polygon[i].slice(0, 3));
+				const toIntersectionVec = subtract(polygon[i].slice(0, 3), current);
+				if (norm(toIntersectionVec) as number <= eps) {
+					isIntersectionOnVertex[i] = true;
+					intersectionPoint.push(polygon[i].slice(0, 3));
+				}
+				else if (dot(edgeVec, toIntersectionVec) > 0 && norm(edgeVec) < norm(toIntersectionVec) && norm(subtract(edgeVec, toIntersectionVec)) as number > eps) {
+					isIntersectionOnEdge[i] = true;
+					intersectionPoint.push(current);
+				}
+			}
+		}
+
+		return {positions: intersectionPoint, type: 0};
 	}
 }
