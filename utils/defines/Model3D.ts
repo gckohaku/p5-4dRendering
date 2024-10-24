@@ -1,4 +1,4 @@
-import { type MathCollection, type MathType, abs, acos, add, chain, concat, cross, divide, dot, dotMultiply, dotPow, inv, map, matrix, mean, multiply, norm, pow, sign, subtract, sum, transpose, unaryMinus } from "mathjs";
+import { type MathCollection, type MathType, abs, acos, add, chain, concat, cross, divide, dot, dotDivide, dotMultiply, dotPow, inv, map, matrix, mean, multiply, norm, pow, sign, subtract, sum, transpose, unaryMinus } from "mathjs";
 import p5 from "p5";
 import { type Coordinate3d, PolygonStrip3D } from "#imports";
 import { BinaryTree } from "./BinaryTree";
@@ -278,13 +278,14 @@ export class Model3D {
 	 * @returns 再分割の必要が無いなら false 再分割が必要なら再分割線の座標
 	 */
 	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | number[][] {
-		// eps 以下は 0 として扱う (浮動小数点数計算では誤差が出るため)
+		console.log(targetPoly);
+		// eps 未満は 0 として扱う (浮動小数点数計算では誤差が出るため)
 		const eps = 1e-5;
 
 		const intersectionLineVec = cross(rootNormalVec, targetNormalVec) as number[];
 
 		// 外積の結果が 0 の場合は平行なので、交差しえない
-		if (abs(intersectionLineVec[0]) <= eps && abs(intersectionLineVec[1]) <= eps && abs(intersectionLineVec[2]) <= eps) {
+		if (abs(intersectionLineVec[0]) < eps && abs(intersectionLineVec[1]) < eps && abs(intersectionLineVec[2]) < eps) {
 			console.log("parallel");
 			return false;
 		}
@@ -327,15 +328,15 @@ export class Model3D {
 		const dRoot = rootNormalVec[0] * rootPoly[0][0] + rootNormalVec[1] * rootPoly[0][1] + rootNormalVec[2] * rootPoly[0][2];
 		const dTarget = targetNormalVec[0] * targetPoly[0][0] + targetNormalVec[1] * targetPoly[0][1] + targetNormalVec[2] * targetPoly[0][2];
 
-		if (intersectionLineVec[2] > eps) {
+		if (intersectionLineVec[2] >= eps) {
 			intersectionLinePoint[0] = (targetNormalVec[1] * dRoot - rootNormalVec[1] * dTarget) / intersectionLineVec[2];
 			intersectionLinePoint[1] = (targetNormalVec[0] * dRoot - rootNormalVec[0] * dTarget) / (-intersectionLineVec[2]);
 		}
-		else if (intersectionLineVec[1] > eps) {
+		else if (intersectionLineVec[1] >= eps) {
 			intersectionLinePoint[0] = (targetNormalVec[2] * dRoot - rootNormalVec[2] * dTarget) / (-intersectionLineVec[1]);
 			intersectionLinePoint[2] = (targetNormalVec[0] * dRoot - rootNormalVec[0] * dTarget) / intersectionLineVec[1];
 		}
-		else if (intersectionLineVec[0] > eps) {
+		else if (intersectionLineVec[0] >= eps) {
 			intersectionLinePoint[1] = (targetNormalVec[2] * dRoot - rootNormalVec[2] * dTarget) / intersectionLineVec[0];
 			intersectionLinePoint[2] = (targetNormalVec[1] * dRoot - rootNormalVec[1] * dTarget) / (-intersectionLineVec[0]);
 		}
@@ -362,20 +363,33 @@ export class Model3D {
 		return true;
 	}
 
-	private findPolygonDivisionPoints(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number): {positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number} {
+	/**
+	 * 
+	 * @param intersectionLineVec 
+	 * @param intersectionLinePoint 
+	 * @param polygon 
+	 * @param eps この値未満は 0 として扱う
+	 * @returns 
+	 */
+	private findPolygonDivisionPoints(intersectionLineVec: number[], intersectionLinePoint: number[], polygon: Coordinate3d[], eps: number): { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number } {
 		/*
 		変数名はこの導出の変数に沿う
 		https://www.mathcha.io/editor/oMjp3H1LFkXh8kW5yXFrPPvkecjqz86GCqkpLpK
 		*/
 		const p_1 = intersectionLinePoint;
-		const a_1 = intersectionLineVec;
+		// a_1 は単位ベクトルである必要がある
+		const a_1 = dotDivide(intersectionLineVec, norm(intersectionLineVec));
 		// l_2 側は線分が3つあるので、配列で表す
 		const p_2 = [polygon[0].slice(0, 3), polygon[1].slice(0, 3), polygon[2].slice(0, 3)];
 		const a_2 = [
 			subtract(p_2[1], p_2[0]),
 			subtract(p_2[2], p_2[1]),
 			subtract(p_2[0], p_2[2]),
-		]
+		];
+		// a_2 も単位ベクトルである必要がある
+		for (let i = 0; i < a_2.length; i++) {
+			a_2[i] = dotDivide(a_2[i], norm(a_2[i]));
+		}
 
 		const m_1 = sum(dotPow(a_1, 2));
 		const m_2: number[] = [];
@@ -399,9 +413,9 @@ export class Model3D {
 			));
 
 			n_2.push(add(
-				multiply(a_1[0], subtract(p_2[i][0], p_1[0])),
-				multiply(a_1[1], subtract(p_2[i][1], p_1[1])),
-				multiply(a_1[2], subtract(p_2[i][2], p_1[2]))
+				multiply(a_2[i][0], subtract(p_2[i][0], p_1[0])),
+				multiply(a_2[i][1], subtract(p_2[i][1], p_1[1])),
+				multiply(a_2[i][2], subtract(p_2[i][2], p_1[2]))
 			));
 
 			o.push(unaryMinus(add(
@@ -410,7 +424,7 @@ export class Model3D {
 				multiply(a_1[2], a_2[i][2])
 			)));
 
-			if (divide(subtract(multiply(m_1, n_2[i]), multiply(m_2[i], o[i])), subtract(pow(o[i], 2), multiply(m_1, n_1[i]))) as number <= eps) {
+			if (abs(subtract(pow(o[i], 2), multiply(m_1, n_1[i]))) as number < eps) {
 				t.push(null);
 			}
 			else {
@@ -429,17 +443,29 @@ export class Model3D {
 				)) as number;
 
 				s.push(current_s);
-
-				console.log(i, s, s[i], a_1);
 				l_1.push(add(p_1, dotMultiply(current_s, a_1)));
 				l_2.push(add(p_2[i], dotMultiply(current_t, a_2[i])));
 			}
+			else {
+				s.push(null);
+				l_1.push(null);
+				l_2.push(null);
+			}
 		}
+
+		// console.log("p1", p_1);
+		// console.log("p2", p_2);
+		// console.log("a1", a_1);
+		// console.log("a2", a_2);
+		// console.log("t", t);
+		// console.log("s", s);
+		// console.log("o", o);
 
 		const intersectionOnPolyLine: (number[] | null)[] = [];
 		for (let i = 0; i < l_1.length; i++) {
 			const current_l_1i = l_1[i];
 			const current_l_2i = l_2[i];
+			// console.log(i, current_l_1i, current_l_2i);
 			if (current_l_1i && current_l_2i) {
 				intersectionOnPolyLine.push(mean([current_l_1i, current_l_2i], 0) as MathType as number[]);
 			}
@@ -465,21 +491,42 @@ export class Model3D {
 		// 	}
 		// }
 
+		console.log(intersectionOnPolyLine);
 		for (let i = 0; i < intersectionOnPolyLine.length; i++) {
 			const current = intersectionOnPolyLine[i];
+			console.group(i);
+			// console.log(current);
 
 			if (current) {
-				const edgeVec = subtract(polygon[i % intersectionOnPolyLine.length].slice(0, 3), polygon[i].slice(0, 3));
-				const toIntersectionVec = subtract(polygon[i].slice(0, 3), current);
-				if (norm(toIntersectionVec) as number <= eps) {
+				// console.log(polygon[i]);
+
+				const edgeVec = subtract(polygon[(i + 1) % polygon.length].slice(0, 3), polygon[i].slice(0, 3));
+				const toIntersectionVec = subtract(current, polygon[i].slice(0, 3));
+				console.log(norm(toIntersectionVec));
+				console.log(dot(edgeVec, toIntersectionVec), edgeVec, toIntersectionVec);
+				console.log(norm(edgeVec), norm(toIntersectionVec));
+				console.log(norm(subtract(edgeVec, toIntersectionVec)));
+				if (norm(toIntersectionVec) as number < eps) {
+					console.log("push vertex");
 					isIntersectionOnVertex[i] = true;
 					intersectionPoint.push(polygon[i].slice(0, 3));
 				}
-				else if (dot(edgeVec, toIntersectionVec) > 0 && norm(edgeVec) < norm(toIntersectionVec) && norm(subtract(edgeVec, toIntersectionVec)) as number > eps) {
-					isIntersectionOnEdge[i] = true;
-					intersectionPoint.push(current);
+				else if (dot(edgeVec, toIntersectionVec) as number >= eps && norm(edgeVec) > norm(toIntersectionVec)) {
+					if (norm(subtract(edgeVec, toIntersectionVec)) as number >= eps) {
+						console.log("push vertex");
+						isIntersectionOnVertex[i] = true;
+						intersectionPoint.push(polygon[i].slice(0, 3));
+					}
+					else {
+						console.log("push current");
+						isIntersectionOnEdge[i] = true;
+						intersectionPoint.push(current);
+					}
+
 				}
 			}
+
+			console.groupEnd();
 		}
 
 		let type: (typeof this.findPolygonDivisionPoints extends (...args: any) => infer R ? R : never)["type"] = "triangleAndSquare";
@@ -493,10 +540,11 @@ export class Model3D {
 			indexCode = isIntersectionOnEdge.indexOf(false);
 		}
 
-		return {positions: intersectionPoint, type: type, indexCode: indexCode};
+		console.log(intersectionPoint);
+		return { positions: intersectionPoint, type: type, indexCode: indexCode };
 	}
 
-	private makeDivisionPolygons(polygon: Coordinate3d[], info: {positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number}): number[][] {
+	private makeDivisionPolygons(polygon: Coordinate3d[], info: { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number }): number[][] {
 		const positions = info.positions;
 
 		if (info.type === "triangleAndSquare") {
@@ -505,9 +553,10 @@ export class Model3D {
 			}
 
 			const retPolygons: Coordinate3d[][] = [];
+			// console.log(positions);
 			retPolygons.push([polygon[info.indexCode], concat(positions[0], [1]) as Coordinate3d, concat(positions[1], [1]) as Coordinate3d]);
-			
-			
+
+
 		}
 
 		return [[0]];
