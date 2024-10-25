@@ -182,9 +182,12 @@ export class Model3D {
 			const distNormalizedAvgVector: number[] = divide(distAvgVector, norm(distAvgVector)) as number[];
 
 			// ポリゴンの再分割が必要かの判定
-			// const intersectionLineVec = cross(rootNormalVector, polyNormalVector) as number[];
-			if (this.isRequiredSubdividing(rootNormalVector, polyNormalVector, rootVertexes, poly)) {
-				console.log(`needs to subdivision at [${rootIndex}, ${rootSubIndex}]`);
+			const subdividingResult = this.isRequiredSubdividing(rootNormalVector, polyNormalVector, rootVertexes, poly);
+			if (subdividingResult) {
+				console.log(`needs to subdivision at [${rootIndex}, ${rootSubIndex}]`, subdividingResult);
+			}
+			else {
+				/* ここに再分割が必要でないときの処理が入る */
 			}
 
 			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
@@ -277,7 +280,7 @@ export class Model3D {
 	 * @param targetPoly 
 	 * @returns 再分割の必要が無いなら false 再分割が必要なら再分割線の座標
 	 */
-	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | number[][] {
+	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | Coordinate3d[][] {
 		console.log(targetPoly);
 		// eps 未満は 0 として扱う (浮動小数点数計算では誤差が出るため)
 		const eps = 1e-5;
@@ -491,11 +494,10 @@ export class Model3D {
 		// 	}
 		// }
 
-		console.log(intersectionOnPolyLine);
 		for (let i = 0; i < intersectionOnPolyLine.length; i++) {
 			const current = intersectionOnPolyLine[i];
 			console.group(i);
-			// console.log(current);
+			console.log(current);
 
 			if (current) {
 				// console.log(polygon[i]);
@@ -509,13 +511,13 @@ export class Model3D {
 				if (norm(toIntersectionVec) as number < eps) {
 					console.log("push vertex");
 					isIntersectionOnVertex[i] = true;
-					intersectionPoint.push(polygon[i].slice(0, 3));
+					// intersectionPoint.push(polygon[i].slice(0, 3));
 				}
 				else if (dot(edgeVec, toIntersectionVec) as number >= eps && norm(edgeVec) > norm(toIntersectionVec)) {
-					if (norm(subtract(edgeVec, toIntersectionVec)) as number >= eps) {
+					if (norm(subtract(edgeVec, toIntersectionVec)) as number < eps) {
 						console.log("push vertex");
-						isIntersectionOnVertex[i] = true;
-						intersectionPoint.push(polygon[i].slice(0, 3));
+						isIntersectionOnVertex[(i + 1) % polygon.length] = true;
+						// intersectionPoint.push(polygon[(i + 1) % polygon.length].slice(0, 3));
 					}
 					else {
 						console.log("push current");
@@ -540,25 +542,36 @@ export class Model3D {
 			indexCode = isIntersectionOnEdge.indexOf(false);
 		}
 
-		console.log(intersectionPoint);
+		console.log(intersectionPoint, type);
 		return { positions: intersectionPoint, type: type, indexCode: indexCode };
 	}
 
-	private makeDivisionPolygons(polygon: Coordinate3d[], info: { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number }): number[][] {
+	private makeDivisionPolygons(polygon: Coordinate3d[], info: { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number }): Coordinate3d[][] {
 		const positions = info.positions;
+		const retPolygons: Coordinate3d[][] = [];
 
+		console.log("polygon", polygon);
 		if (info.type === "triangleAndSquare") {
 			if (info.indexCode === 1) {
 				[positions[0], positions[1]] = [positions[1], positions[0]];
 			}
 
-			const retPolygons: Coordinate3d[][] = [];
 			// console.log(positions);
 			retPolygons.push([polygon[info.indexCode], concat(positions[0], [1]) as Coordinate3d, concat(positions[1], [1]) as Coordinate3d]);
+			const second = (info.indexCode + 1) % polygon.length;
+			const third = (second + 1) % polygon.length;
+			retPolygons.push([concat(positions[0], [1]) as Coordinate3d, polygon[second], polygon[third]]);
+			retPolygons.push([concat(positions[0], [1]) as Coordinate3d, polygon[third], concat(positions[1], [1]) as Coordinate3d, ]);
+		}
+		else {
+			const first = info.indexCode;
+			const second = (first + 1) % polygon.length;
+			const third = (second + 1) % polygon.length;
 
-
+			retPolygons.push([polygon[first], polygon[second], concat(positions[0], [1]) as Coordinate3d]);
+			retPolygons.push([polygon[first], concat(positions[0], [1]) as Coordinate3d, polygon[third]]);
 		}
 
-		return [[0]];
+		return retPolygons;
 	}
 }
