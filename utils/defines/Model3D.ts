@@ -66,8 +66,9 @@ export class Model3D {
 			}
 		}
 
+		const indexValue = polygons.length - 1;
 		this.bspTree = new BinaryTree<BSPTreeType>(nodeData);
-		this.setBSPChildren(this.bspTree, rootPolygonIndex, rootPolygonSubIndex);
+		this.setBSPChildren(this.bspTree, rootPolygonIndex, rootPolygonSubIndex, indexValue);
 	}
 
 	renderFrame(p: p5,
@@ -158,7 +159,7 @@ export class Model3D {
 		return polygons;
 	}
 
-	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0) {
+	private setBSPChildren(node: BinaryTree<BSPTreeType>, rootIndex: number = 0, rootSubIndex: number = 0, indexValue: number) {
 		const rootVertexes = this.parts[rootIndex].getPolygonOfIndex(rootSubIndex);
 		const rootNormalVector = getNormalVector(rootVertexes);
 		const rootNormalizedNormalVector: number[] = divide(rootNormalVector, norm(rootNormalVector)) as number[];
@@ -167,6 +168,8 @@ export class Model3D {
 
 		const leftData: BSPTreeType = [];
 		const rightData: BSPTreeType = [];
+
+		let currentMaxIndex = indexValue;
 
 		for (const indexes of node.data) {
 			if (indexes.index === rootIndex && indexes.subIndex === rootSubIndex) {
@@ -183,30 +186,50 @@ export class Model3D {
 
 			// ポリゴンの再分割が必要かの判定
 			const subdividingResult = this.isRequiredSubdividing(rootNormalVector, polyNormalVector, rootVertexes, poly);
+
 			if (subdividingResult) {
 				console.log(`needs to subdivision at [${rootIndex}, ${rootSubIndex}]`, subdividingResult);
-			}
-			else {
-				/* ここに再分割が必要でないときの処理が入る */
-			}
 
-			if (dot(distAvgVector.slice(0, 3), rootNormalizedNormalVector) >= 0) {
-				leftData.push({ index: indexes.index, subIndex: indexes.subIndex });
+				const newIndex = ++currentMaxIndex;
+				const subIndexRange = subdividingResult.length - 2;
+				// for (let i = 0; i < subdividingResult.length - 2; i++) {
+				// 	node.data.push({index: newIndex, subIndex: i});
+				// }
+				this.parts.push(new PolygonStrip3D(subdividingResult));
+				this.parts[newIndex].setColor(...this.parts[indexes.index].color);
+
+				for (let i = 0; i < subIndexRange; i++) {
+					const dividedPolygon = this.parts[newIndex].getPolygonOfIndex(i);
+					const resultAveragePos = mean([...dividedPolygon], 0) as MathType as number[];
+					const distFromRootToResult = subtract(resultAveragePos, rootAveragePos);
+
+					if (dot(distFromRootToResult.slice(0, 3), rootNormalVector) >= 0) {
+						leftData.push({index: newIndex, subIndex: i});
+					}
+					else {
+						rightData.push({index: newIndex, subIndex: i});
+					}
+				}
 			}
 			else {
-				rightData.push({ index: indexes.index, subIndex: indexes.subIndex });
+				if (dot(distAvgVector.slice(0, 3), rootNormalVector) >= 0) {
+					leftData.push({ index: indexes.index, subIndex: indexes.subIndex });
+				}
+				else {
+					rightData.push({ index: indexes.index, subIndex: indexes.subIndex });
+				}
 			}
 		}
 
 		if (leftData.length) {
 			node.addLeft(leftData);
 			const firstIndexes = leftData[0];
-			this.setBSPChildren(node.left!, firstIndexes.index, firstIndexes.subIndex);
+			this.setBSPChildren(node.left!, firstIndexes.index, firstIndexes.subIndex, currentMaxIndex);
 		}
 		if (rightData.length) {
 			node.addRight(rightData);
 			const firstIndexes = rightData[0];
-			this.setBSPChildren(node.right!, firstIndexes.index, firstIndexes.subIndex);
+			this.setBSPChildren(node.right!, firstIndexes.index, firstIndexes.subIndex, currentMaxIndex);
 		}
 
 		for (const indexes of node.data) {
@@ -280,7 +303,7 @@ export class Model3D {
 	 * @param targetPoly 
 	 * @returns 再分割の必要が無いなら false 再分割が必要なら再分割線の座標
 	 */
-	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | Coordinate3d[][] {
+	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | Coordinate3d[] {
 		console.log(targetPoly);
 		// eps 未満は 0 として扱う (浮動小数点数計算では誤差が出るため)
 		const eps = 1e-5;
@@ -456,14 +479,6 @@ export class Model3D {
 			}
 		}
 
-		// console.log("p1", p_1);
-		// console.log("p2", p_2);
-		// console.log("a1", a_1);
-		// console.log("a2", a_2);
-		// console.log("t", t);
-		// console.log("s", s);
-		// console.log("o", o);
-
 		const intersectionOnPolyLine: (number[] | null)[] = [];
 		for (let i = 0; i < l_1.length; i++) {
 			const current_l_1i = l_1[i];
@@ -477,22 +492,10 @@ export class Model3D {
 			}
 		}
 
-		const first = intersectionOnPolyLine[0];
-		const second = intersectionOnPolyLine[1];
-		const third = intersectionOnPolyLine[2];
-
 		const intersectionPoint: number[][] = [];
 
 		const isIntersectionOnEdge = [false, false, false];
 		const isIntersectionOnVertex = [false, false, false];
-
-		// if (first) {
-		// 	const edgeLength = subtract(polygon[1].slice(0, 3), polygon[0].slice(0, 3));
-		// 	const firstToIntersectionDistance = subtract(polygon[0].slice(0, 3), first);
-		// 	if (abs(edgeLength) < abs(firstToIntersectionDistance)) {
-		// 		isIntersectionOnEdge[0] = true;
-		// 	}
-		// }
 
 		for (let i = 0; i < intersectionOnPolyLine.length; i++) {
 			const current = intersectionOnPolyLine[i];
@@ -511,20 +514,17 @@ export class Model3D {
 				if (norm(toIntersectionVec) as number < eps) {
 					console.log("push vertex");
 					isIntersectionOnVertex[i] = true;
-					// intersectionPoint.push(polygon[i].slice(0, 3));
 				}
 				else if (dot(edgeVec, toIntersectionVec) as number >= eps && norm(edgeVec) > norm(toIntersectionVec)) {
 					if (norm(subtract(edgeVec, toIntersectionVec)) as number < eps) {
 						console.log("push vertex");
 						isIntersectionOnVertex[(i + 1) % polygon.length] = true;
-						// intersectionPoint.push(polygon[(i + 1) % polygon.length].slice(0, 3));
 					}
 					else {
 						console.log("push current");
 						isIntersectionOnEdge[i] = true;
 						intersectionPoint.push(current);
 					}
-
 				}
 			}
 
@@ -546,9 +546,19 @@ export class Model3D {
 		return { positions: intersectionPoint, type: type, indexCode: indexCode };
 	}
 
-	private makeDivisionPolygons(polygon: Coordinate3d[], info: { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number }): Coordinate3d[][] {
+	/**
+	 * ポリゴンを分割したポリゴンストリップを作成する
+	 * @param polygon 
+	 * @param info 
+	 * @returns ポリゴンストリップを表す配列
+	 */
+	private makeDivisionPolygons(polygon: Coordinate3d[], info: { positions: number[][], type: "triangleAndSquare" | "triangles", indexCode: number }): Coordinate3d[] {
 		const positions = info.positions;
-		const retPolygons: Coordinate3d[][] = [];
+		const retPolygonStrip: Coordinate3d[] = [];
+
+		const first = info.indexCode;
+		const second = (first + 1) % polygon.length;
+		const third = (second + 1) % polygon.length;
 
 		console.log("polygon", polygon);
 		if (info.type === "triangleAndSquare") {
@@ -556,22 +566,12 @@ export class Model3D {
 				[positions[0], positions[1]] = [positions[1], positions[0]];
 			}
 
-			// console.log(positions);
-			retPolygons.push([polygon[info.indexCode], concat(positions[0], [1]) as Coordinate3d, concat(positions[1], [1]) as Coordinate3d]);
-			const second = (info.indexCode + 1) % polygon.length;
-			const third = (second + 1) % polygon.length;
-			retPolygons.push([concat(positions[0], [1]) as Coordinate3d, polygon[second], polygon[third]]);
-			retPolygons.push([concat(positions[0], [1]) as Coordinate3d, polygon[third], concat(positions[1], [1]) as Coordinate3d, ]);
+			retPolygonStrip.push(polygon[third], concat(positions[1], [1]) as Coordinate3d, concat(positions[0], [1]) as Coordinate3d, polygon[first], polygon[second]);
 		}
 		else {
-			const first = info.indexCode;
-			const second = (first + 1) % polygon.length;
-			const third = (second + 1) % polygon.length;
-
-			retPolygons.push([polygon[first], polygon[second], concat(positions[0], [1]) as Coordinate3d]);
-			retPolygons.push([polygon[first], concat(positions[0], [1]) as Coordinate3d, polygon[third]]);
+			retPolygonStrip.push(polygon[second], concat(positions[0], [1]) as Coordinate3d, polygon[first], polygon[third]);
 		}
 
-		return retPolygons;
+		return retPolygonStrip;
 	}
 }
