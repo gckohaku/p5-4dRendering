@@ -219,6 +219,25 @@ export class PolygonStrip3D {
 		p.endShape(p.CLOSE);
 	}
 
+	renderWithWebgl(p: p5) {
+		p.fill(this.color);
+
+		const v = this.vertexes;
+
+		const len = v.length;
+
+		p.beginShape();
+		p.vertex(v[0][0], v[0][1], v[0][2]);
+		for (let i = 1; i < len - 1; i += 2) {
+			p.vertex(v[i][0], v[i][1], v[i][2]);
+		}
+		p.vertex(v[len - 1][0], v[len - 1][1], v[len - 1][2]);
+		for (let i = len - 1 - (len + 1) % 2; i > 0; i -= 2) {
+			p.vertex(v[i][0], v[i][1], v[i][2]);
+		}
+		p.endShape(p.CLOSE);
+	}
+
 	affine(m: Matrix<4, 4>) {
 		const vs = this.vertexes;
 		for (let i = 0; i < vs.length; i++) {
