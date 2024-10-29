@@ -4,7 +4,7 @@ import type p5 from "p5";
 
 export class PolygonStrip3D {
 	vertexes: Coordinate3d[];
-	color: { r: number, g: number, b: number } = { r: 0, g: 128, b: 0 };
+	color: ColorRGBArray = [0, 128, 0];
 
 	constructor(polyStrip3d: PolygonStrip3D);
 	constructor(vertexes: Coordinate3d[]);
@@ -12,6 +12,7 @@ export class PolygonStrip3D {
 	constructor(arg: PolygonStrip3D | Coordinate3d[]) {
 		if (arg instanceof PolygonStrip3D) {
 			this.vertexes = [...arg.vertexes];
+			this.color = [...arg.color];
 		}
 		else {
 			if (arg.length < 3) {
@@ -23,15 +24,30 @@ export class PolygonStrip3D {
 
 	setColor(r: number, g: number, b: number) {
 		const c = this.color;
-		c.r = r;
-		c.g = g;
-		c.b = b; 
+		c[0] = r;
+		c[1] = g;
+		c[2] = b;
 	}
 
-	getPolygons(): number[][] {
-		const retArray: number[][] = structuredClone(this.vertexes);
-		
+	getPolygons(): Coordinate3d[] {
+		const retArray: Coordinate3d[] = structuredClone(this.vertexes);
+
 		return retArray;
+	}
+
+	getPolygonOfIndex(index: number): [Coordinate3d, Coordinate3d, Coordinate3d] {
+		if (index + 2 >= this.vertexes.length) {
+			throw new Error(`Error in PolygonStrip3D.getPolygonsOfIndex(): polygon of specified index don't exists.`);
+		}
+
+		const v = this.vertexes;
+
+		if (index % 2 === 0) {
+			return [v[index], v[index + 1], v[index + 2]];
+		}
+		else {
+			return [v[index], v[index + 2], v[index + 1]];
+		}
 	}
 
 	renderFrame(p: p5,
@@ -56,7 +72,7 @@ export class PolygonStrip3D {
 			p.stroke(strokeColor.r, strokeColor.g, strokeColor.b);
 		}
 
-		p.fill(this.color.r, this.color.g, this.color.b);
+		p.fill(this.color[0], this.color[1], this.color[2]);
 
 		const v = this.vertexes;
 
@@ -166,7 +182,10 @@ export class PolygonStrip3D {
 	}
 
 	render(p: p5, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, center: [number, number, ...number[]] = [0, 0]) {
-		p.fill(0, 0, 0, 0);
+		const c = this.color;
+		console.log(c[0], c[1], c[2]);
+		p.fill(c[0], c[1], c[2]);
+		p.stroke(0, 0, 0, 0);
 
 		const v = this.vertexes;
 
@@ -179,7 +198,7 @@ export class PolygonStrip3D {
 			if (cameraZ >= 0) {
 				continue;
 			}
-			const screenPos = multiply(calibrationMatrix, transpose(v[i])) as number[];
+			const screenPos = chain(calibrationMatrix).multiply(transpose(v[i])).divide(-cameraZ).done() as number[];
 			renderV.push([screenPos[0], screenPos[1], screenPos[2]]);
 		}
 
