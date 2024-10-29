@@ -485,7 +485,8 @@ export class Model3D {
 			const current_l_2i = l_2[i];
 			// console.log(i, current_l_1i, current_l_2i);
 			if (current_l_1i && current_l_2i) {
-				intersectionOnPolyLine.push(mean([current_l_1i, current_l_2i], 0) as MathType as number[]);
+				// intersectionOnPolyLine.push(mean([current_l_1i, current_l_2i], 0) as MathType as number[]);
+				intersectionOnPolyLine.push(current_l_2i);
 			}
 			else {
 				intersectionOnPolyLine.push(null);
