@@ -118,7 +118,7 @@ export class Model3D {
 			standardLuminousDistance?: number;
 		} = {}
 	) {
-		p.stroke(0, 0, 0, 0);
+		p.strokeWeight(0.7);
 
 		const polygons: Coordinate3d[][] = this.getPolygons();
 
@@ -265,6 +265,7 @@ export class Model3D {
 
 			const illuminanceDistFactor: number = inv(pow(divide(polyDistToPointOfView, standardLuminousDistance), 2) as number);
 			const illuminanceAngleFactor: number = divide(dot([0, 0, 1], targetNormalVec), norm(targetNormalVec)) as number;
+			p.stroke(...chain(this.parts[index].color).multiply(0.4 + illuminanceAngleFactor * 0.6).done());
 			p.fill(...chain(this.parts[index].color).multiply(0.4 + illuminanceAngleFactor * 0.6).done());
 
 			const renderPolygon: number[][] = []
