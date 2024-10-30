@@ -7,3 +7,7 @@ import "~/public/base.css"
 		<Rotatable3DWithWebgl />
 	</div>
 </template>
+
+<style scoped>
+
+</style>

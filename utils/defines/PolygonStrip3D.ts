@@ -220,7 +220,10 @@ export class PolygonStrip3D {
 	}
 
 	renderWithWebgl(p: p5) {
-		p.fill(this.color);
+		// p.stroke(this.color);
+		// p.strokeWeight(0.1);
+		// p.fill(this.color);
+		p.noStroke();
 
 		const v = this.vertexes;
 

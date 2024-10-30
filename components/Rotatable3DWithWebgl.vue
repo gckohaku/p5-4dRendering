@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { chain, concat, cot, divide, mean, pi, unit } from "mathjs";
+import { chain, concat, cot, divide, pi, unit } from "mathjs";
 import type p5 from "p5";
-import App from "~/app.vue";
 import { type Coordinate3d, makeCoordinate3d } from "~/utils/defines/MatrixCoordinateTypes";
 import type { Matrix } from "~/utils/defines/MatrixTypes";
 import { makeRotate3DMatrix44 } from "~/utils/defines/MatrixUtilities";
@@ -77,7 +76,6 @@ onMounted(async () => {
 		model.setVertexes(nextVertexes);
 		model.setParts(nextParts, nextColors);
 		// model.makeBSPTree(0);
-		console.log(model.bspTree?.toString());
 
 		const rotateXId = "rotate-x-control";
 		const rotateYId = "rotate-y-control";
@@ -129,8 +127,9 @@ onMounted(async () => {
 
 		p.draw = () => {
 			p.clear();
-			p.stroke(0, 0, 0, 128);
 			p.strokeWeight(1);
+			p.normalMaterial();
+			p.orbitControl();
 
 			const xControl = p.select(`#${xId} .slider`)!;
 			const yControl = p.select(`#${yId} .slider`)!;
@@ -186,4 +185,6 @@ onMounted(async () => {
 	<div id="canvas" ref="canvasRef"></div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* solving Vue - Official 2.1.8 bug */
+</style>
