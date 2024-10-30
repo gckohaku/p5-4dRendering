@@ -4,6 +4,10 @@ import "~/public/base.css"
 
 <template>
 	<div>
-		<Rotatable3D />
+		<Rotatable3DWithWebgl />
 	</div>
 </template>
+
+<style scoped>
+
+</style>

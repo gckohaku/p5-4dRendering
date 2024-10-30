@@ -242,6 +242,12 @@ export class Model3D {
 
 	}
 
+	renderWithWebgl(p: p5) {
+		for (const part of this.parts) {
+			part.renderWithWebgl(p);
+		}
+	}
+
 	private recursiveRender(p: p5, tree: BinaryTree<BSPTreeType>, cameraMatrix: Matrix<3, 3>, externalMatrix: Matrix<3, 4>, pointOfViewPolygon: Coordinate3d[], standardLuminousDistance: number = 100) {
 		const index = tree.data[0].index;
 		const subIndex = tree.data[0].subIndex;
