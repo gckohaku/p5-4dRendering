@@ -6,6 +6,27 @@ import { type Coordinate3d, makeCoordinate3d } from "~/utils/defines/MatrixCoord
 import type { Matrix } from "~/utils/defines/MatrixTypes";
 import { makeRotate3DMatrix44 } from "~/utils/defines/MatrixUtilities";
 import type { ColorRGBArray } from "~/utils/defines/TypeUtilities";
+import ControllerUi3D from "./ControllerUi3D.vue";
+
+const moveX: Ref<string> = ref("0");
+const moveY: Ref<string> = ref("0");
+const moveZ: Ref<string> = ref("0");
+const rotateX: Ref<string> = ref("0");
+const rotateY: Ref<string> = ref("0");
+const rotateZ: Ref<string> = ref("0");
+const sizeX: Ref<string> = ref("1.0");
+const sizeY: Ref<string> = ref("1.0");
+const sizeZ: Ref<string> = ref("1.0");
+
+const cameraMoveX: Ref<string> = ref("0");
+const cameraMoveY: Ref<string> = ref("0");
+const cameraMoveZ: Ref<string> = ref("0");
+const cameraRotateX: Ref<string> = ref("0");
+const cameraRotateY: Ref<string> = ref("0");
+const cameraRotateZ: Ref<string> = ref("0");
+const cameraSizeX: Ref<string> = ref("1.0");
+const cameraSizeY: Ref<string> = ref("1.0");
+const cameraSizeZ: Ref<string> = ref("1.0");
 
 onMounted(async () => {
 	const { default: p5 } = await import("p5");
@@ -79,16 +100,6 @@ onMounted(async () => {
 		model.makeBSPTree(0);
 		console.log(model.bspTree?.toString());
 
-		const rotateXId = "rotate-x-control";
-		const rotateYId = "rotate-y-control";
-		const rotateZId = "rotate-z-control";
-		const xId = "x-control";
-		const yId = "y-control";
-		const zId = "z-control";
-		const sizeXId = "size-x-control";
-		const sizeYId = "size-y-control";
-		const sizeZId = "size-z-control";
-
 		p.setup = () => {
 			if (import.meta.dev) {
 				const oldWrapper = p.select(".control-wrapper");
@@ -99,32 +110,6 @@ onMounted(async () => {
 			}
 
 			p.createCanvas(600, 600).parent("canvas");
-			const wrapperDiv = p.createDiv();
-			wrapperDiv.addClass("control-wrapper");
-
-			const rotateXControl = createSliderContainer(p, rotateXId, "rotateX", { min: -360, max: 360 });
-			const rotateYControl = createSliderContainer(p, rotateYId, "rotateY", { min: -360, max: 360 });
-			const rotateZControl = createSliderContainer(p, rotateZId, "rotateZ", { min: -360, max: 360 });
-			const xControl = createSliderContainer(p, xId, "x", { max: 300, min: -300 });
-			const yControl = createSliderContainer(p, yId, "y", { max: 300, min: -300 });
-			const zControl = createSliderContainer(p, zId, "z", { max: 300, min: -300 });
-			const sizeXControl = createSliderContainer(p, sizeXId, "sizeX", { min: 0.1, max: 2, value: 1, step: 0.1 });
-			const sizeYControl = createSliderContainer(p, sizeYId, "sizeY", { min: 0.1, max: 2, value: 1, step: 0.1 });
-			const sizeZControl = createSliderContainer(p, sizeZId, "sizeZ", { min: 0.1, max: 2, value: 1, step: 0.1 });
-
-			wrapperDiv.child(xControl);
-			wrapperDiv.child(yControl);
-			wrapperDiv.child(zControl);
-			wrapperDiv.child(rotateXControl);
-			wrapperDiv.child(rotateYControl);
-			wrapperDiv.child(rotateZControl);
-			wrapperDiv.child(sizeXControl);
-			wrapperDiv.child(sizeYControl);
-			wrapperDiv.child(sizeZControl);
-
-			wrapperDiv.position(610, 0);
-
-			p.select("#__nuxt")!.child(wrapperDiv);
 		}
 
 		p.draw = () => {
@@ -134,32 +119,11 @@ onMounted(async () => {
 			p.line(center[0], 0, center[0], canvasSize[1]);
 			p.line(0, center[1], canvasSize[0], center[1]);
 
-			const xControl = p.select(`#${xId} .slider`)!;
-			const yControl = p.select(`#${yId} .slider`)!;
-			const zControl = p.select(`#${zId} .slider`)!;
-			const rotateXControl = p.select(`#${rotateXId} .slider`)!;
-			const rotateYControl = p.select(`#${rotateYId} .slider`)!;
-			const rotateZControl = p.select(`#${rotateZId} .slider`)!;
-			const sizeXControl = p.select(`#${sizeXId} .slider`)!;
-			const sizeYControl = p.select(`#${sizeYId} .slider`)!;
-			const sizeZControl = p.select(`#${sizeZId} .slider`)!;
+			const sizeMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[Number(sizeX.value), 0, 0, 0], [0, Number(sizeY.value), 0, 0], [0, 0, Number(sizeZ.value), 0], [0, 0, 0, 1]]);
+			const rotateMatrix: ComputedRef<Matrix<4, 4>> = computed(() => makeRotate3DMatrix44(Number(rotateX.value), Number(rotateY.value), Number(rotateZ.value)));
+			const parallelMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[1, 0, 0, Number(moveX.value)], [0, 1, 0, Number(moveY.value)], [0, 0, 1, Number(moveZ.value)], [0, 0, 0, 1]]);
 
-			const moveX = Number(xControl.value());
-			const moveY = Number(yControl.value());
-			const moveZ = Number(zControl.value());
-			const rotateXDeg = unit(Number(rotateXControl.value()), "deg");
-			const rotateYDeg = unit(Number(rotateYControl.value()), "deg");
-			const rotateZDeg = unit(Number(rotateZControl.value()), "deg");
-			const sizeX = Number(sizeXControl.value());
-			const sizeY = Number(sizeYControl.value());
-			const sizeZ = Number(sizeZControl.value());
-
-			const sizeMatrix: Matrix<4, 4> = [[sizeX, 0, 0, 0], [0, sizeY, 0, 0], [0, 0, sizeZ, 0], [0, 0, 0, 1]];
-			const rotateMatrix: Matrix<4, 4> = makeRotate3DMatrix44(rotateXDeg.toNumber(), rotateYDeg.toNumber(), rotateZDeg.toNumber());
-			// const rotateMatrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
-			const parallelMatrix: Matrix<4, 4> = [[1, 0, 0, moveX], [0, 1, 0, moveY], [0, 0, 1, moveZ], [0, 0, 0, 1]];
-
-			const transformMatrix: Matrix<4, 4> = chain(parallelMatrix).multiply(rotateMatrix).multiply(sizeMatrix).done();
+			const transformMatrix: ComputedRef<Matrix<4, 4>> = computed(() => chain(parallelMatrix.value).multiply(rotateMatrix.value).multiply(sizeMatrix.value).done());
 
 			const renderModel = new Model3D(model);
 
@@ -172,12 +136,12 @@ onMounted(async () => {
 				[0, focalLength, center[1]],
 				[0, 0, 1]
 			];
-			const externalMatrix: Matrix<3, 4> = concat(makeRotate3DMatrix(0, 0, 0), [[0], [0], [-450]]) as Matrix<3, 4>;
+			const externalMatrix: Matrix<3, 4> = concat(makeRotate3DMatrix(Number(cameraRotateX.value), Number(cameraRotateY.value), Number(cameraRotateZ.value)), [[0], [0], [-450]]) as Matrix<3, 4>;
 
-			renderModel.affine(transformMatrix);
+			renderModel.affine(transformMatrix.value);
 
 			// renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
-			renderModel.render(p, cameraMatrix, externalMatrix, {standardLuminousDistance: 450});
+			renderModel.render(p, cameraMatrix, externalMatrix, { standardLuminousDistance: 450 });
 			// renderModel.renderFrame(p, { center: center, strokeColor: "green", subGridColor: "rgba(96, 32, 0)", subGridAlpha: 0 });
 		}
 	}
@@ -187,7 +151,25 @@ onMounted(async () => {
 </script>
 
 <template>
-	<div id="canvas" ref="canvasRef"></div>
+	<div class="page-container">
+		<div id="canvas" ref="canvasRef"></div>
+
+		<div class="controller-container">
+			<ControllerTabContainer>
+				<template v-slot:object>
+					<ControllerUi3D v-model:move-x="moveX" v-model:move-y="moveY" v-model:move-z="moveZ" v-model:rotate-x="rotateX" v-model:rotate-y="rotateY" v-model:rotate-z="rotateZ" v-model:size-x="sizeX" v-model:size-y="sizeY" v-model:size-z="sizeZ" />
+				</template>
+				<template v-slot:camera>
+					<ControllerUi3D v-model:move-x="cameraMoveX" v-model:move-y="cameraMoveY" v-model:move-z="cameraMoveZ" v-model:rotate-x="cameraRotateX" v-model:rotate-y="cameraRotateY" v-model:rotate-z="cameraRotateZ" v-model:size-x="cameraSizeX" v-model:size-y="cameraSizeY" v-model:size-z="cameraSizeZ" />
+				</template>
+			</ControllerTabContainer>
+		</div>
+	</div>
+
 </template>
 
-<style scoped></style>
+<style scoped>
+.page-container {
+	display: flex;
+}
+</style>
