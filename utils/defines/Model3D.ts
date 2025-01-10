@@ -147,6 +147,7 @@ export class Model3D {
 		for (const part of this.parts) {
 			part.affine(m);
 		}
+		console.log(m);
 	}
 
 	private getPolygons(): Coordinate3d[][] {

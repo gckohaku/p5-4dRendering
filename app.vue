@@ -4,7 +4,7 @@ import "~/public/base.css"
 
 <template>
 	<div>
-		<Rotatable3DWithWebgl />
+		<Rotatable3D />
 	</div>
 </template>
 
