@@ -29,6 +29,22 @@ const cameraSizeY: Ref<string> = ref("1.0");
 const cameraSizeZ: Ref<string> = ref("1.0");
 
 onMounted(async () => {
+	if (process.env.NODE_ENV === "development") {
+		console.log("develop");
+
+		const initializeState = localStorage.getItem("initializeState");
+
+		if (initializeState === "initialized") {
+			console.log("a");
+			localStorage.setItem("initializeState", "reload");
+			console.log("page reloading");
+			location.reload();
+			return;
+		}
+
+		localStorage.setItem("initializeState", "initialized");
+	}
+
 	const { default: p5 } = await import("p5");
 
 	const sketch = (p: p5) => {
@@ -136,7 +152,7 @@ onMounted(async () => {
 				[0, focalLength, center[1]],
 				[0, 0, 1]
 			];
-			const externalMatrix: Matrix<3, 4> = concat(makeRotate3DMatrix(Number(cameraRotateX.value), Number(cameraRotateY.value), Number(cameraRotateZ.value)), [[0], [0], [-450]]) as Matrix<3, 4>;
+			const externalMatrix: Matrix<3, 4> = concat(makeRotate3DMatrix(Number(cameraRotateX.value), Number(cameraRotateY.value), Number(cameraRotateZ.value)), [[Number(cameraMoveX.value)], [Number(cameraMoveY.value)], [-450]]) as Matrix<3, 4>;
 
 			renderModel.affine(transformMatrix.value);
 
