@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { chain, concat, cot, divide, mean, pi, unit } from "mathjs";
+import { chain, concat, cot, divide, mean, multiply, pi, unaryMinus, unit } from "mathjs";
 import type p5 from "p5";
 import App from "~/app.vue";
 import { type Coordinate3d, makeCoordinate3d } from "~/utils/defines/MatrixCoordinateTypes";
@@ -27,6 +27,12 @@ const cameraRotateZ: Ref<string> = ref("0");
 const cameraSizeX: Ref<string> = ref("1.0");
 const cameraSizeY: Ref<string> = ref("1.0");
 const cameraSizeZ: Ref<string> = ref("1.0");
+
+const sizeMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[Number(sizeX.value), 0, 0, 0], [0, Number(sizeY.value), 0, 0], [0, 0, Number(sizeZ.value), 0], [0, 0, 0, 1]]);
+const rotateMatrix: ComputedRef<Matrix<4, 4>> = computed(() => makeRotate3DMatrix44(Number(rotateX.value), Number(rotateY.value), Number(rotateZ.value)));
+const parallelMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[1, 0, 0, Number(moveX.value)], [0, 1, 0, Number(moveY.value)], [0, 0, 1, Number(moveZ.value)], [0, 0, 0, 1]]);
+
+const transformMatrix: ComputedRef<Matrix<4, 4>> = computed(() => chain(parallelMatrix.value).multiply(rotateMatrix.value).multiply(sizeMatrix.value).done());
 
 onMounted(async () => {
 	if (process.env.NODE_ENV === "development") {
@@ -135,29 +141,25 @@ onMounted(async () => {
 			p.line(center[0], 0, center[0], canvasSize[1]);
 			p.line(0, center[1], canvasSize[0], center[1]);
 
-			const sizeMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[Number(sizeX.value), 0, 0, 0], [0, Number(sizeY.value), 0, 0], [0, 0, Number(sizeZ.value), 0], [0, 0, 0, 1]]);
-			const rotateMatrix: ComputedRef<Matrix<4, 4>> = computed(() => makeRotate3DMatrix44(Number(rotateX.value), Number(rotateY.value), Number(rotateZ.value)));
-			const parallelMatrix: ComputedRef<Matrix<4, 4>> = computed(() => [[1, 0, 0, Number(moveX.value)], [0, 1, 0, Number(moveY.value)], [0, 0, 1, Number(moveZ.value)], [0, 0, 0, 1]]);
-
-			const transformMatrix: ComputedRef<Matrix<4, 4>> = computed(() => chain(parallelMatrix.value).multiply(rotateMatrix.value).multiply(sizeMatrix.value).done());
-
 			const renderModel = new Model3D(model);
 
 			const focalLength: number = 300 * cot(pi * 23 / 180);
 
 			// 平行移動は目的地の座標に -1 をかける必要がある
 			// カメラパラメータの y軸 は今回はスクリーンの y軸 が逆向きのため、-1 をかける必要は無い
-			const cameraMatrix: Matrix<3, 3> = [
+			const cameraInternalMatrix: Matrix<3, 3> = [
 				[focalLength, 0, -center[0]],
 				[0, focalLength, center[1]],
 				[0, 0, 1]
 			];
-			const externalMatrix: Matrix<3, 4> = concat(makeRotate3DMatrix(Number(cameraRotateX.value), Number(cameraRotateY.value), Number(cameraRotateZ.value)), [[Number(cameraMoveX.value)], [Number(cameraMoveY.value)], [-450]]) as Matrix<3, 4>;
+			const cameraRotateMatrix: Matrix<3, 3> = makeRotate3DMatrix(-Number(cameraRotateX.value), -Number(cameraRotateY.value), -Number(cameraRotateZ.value));
+			const cameraParallelMatrix: Matrix<3, 1> = multiply(unaryMinus(cameraRotateMatrix), [[Number(cameraMoveX.value)], [Number(cameraMoveY.value)], [450]]) as Matrix<3, 1>;
+			const externalMatrix: Matrix<3, 4> = concat(cameraRotateMatrix, cameraParallelMatrix) as Matrix<3, 4>;
 
 			renderModel.affine(transformMatrix.value);
 
 			// renderModel.renderFrame2DPerspective(p, cameraMatrix, externalMatrix, { center: center, strokeColor: "green", subGridColor: "rgb(96, 32, 0)", isSubGrid: false });
-			renderModel.render(p, cameraMatrix, externalMatrix, { standardLuminousDistance: 450 });
+			renderModel.render(p, cameraInternalMatrix, externalMatrix, { standardLuminousDistance: 450 });
 			// renderModel.renderFrame(p, { center: center, strokeColor: "green", subGridColor: "rgba(96, 32, 0)", subGridAlpha: 0 });
 		}
 	}
