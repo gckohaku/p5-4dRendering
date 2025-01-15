@@ -147,7 +147,6 @@ export class Model3D {
 		for (const part of this.parts) {
 			part.affine(m);
 		}
-		console.log(m);
 	}
 
 	private getPolygons(): Coordinate3d[][] {
@@ -205,10 +204,10 @@ export class Model3D {
 					const distFromRootToResult = subtract(resultAveragePos, rootAveragePos);
 
 					if (dot(distFromRootToResult.slice(0, 3), rootNormalVector) >= 0) {
-						leftData.push({index: newIndex, subIndex: i});
+						leftData.push({ index: newIndex, subIndex: i });
 					}
 					else {
-						rightData.push({index: newIndex, subIndex: i});
+						rightData.push({ index: newIndex, subIndex: i });
 					}
 				}
 			}
@@ -275,7 +274,9 @@ export class Model3D {
 			p.stroke(...chain(this.parts[index].color).multiply(0.4 + illuminanceAngleFactor * 0.6).done());
 			p.fill(...chain(this.parts[index].color).multiply(0.4 + illuminanceAngleFactor * 0.6).done());
 
-			const renderPolygon: number[][] = []
+			const renderPolygon: number[][] = [];
+
+			console.log(cameraMatrix, externalMatrix);
 
 			for (let i = 0; i < targetPolygon.length; i++) {
 				const renderVertex = chain(cameraMatrix as MathCollection).multiply(externalMatrix).multiply(transpose(targetPolygon[i])).done() as number[];
@@ -312,7 +313,6 @@ export class Model3D {
 	 * @returns 再分割の必要が無いなら false 再分割が必要なら再分割線の座標
 	 */
 	private isRequiredSubdividing(rootNormalVec: number[], targetNormalVec: number[], rootPoly: Coordinate3d[], targetPoly: Coordinate3d[]): false | Coordinate3d[] {
-		console.log(targetPoly);
 		// eps 未満は 0 として扱う (浮動小数点数計算では誤差が出るため)
 		const eps = 1e-5;
 
@@ -491,7 +491,6 @@ export class Model3D {
 		for (let i = 0; i < l_1.length; i++) {
 			const current_l_1i = l_1[i];
 			const current_l_2i = l_2[i];
-			// console.log(i, current_l_1i, current_l_2i);
 			if (current_l_1i && current_l_2i) {
 				// intersectionOnPolyLine.push(mean([current_l_1i, current_l_2i], 0) as MathType as number[]);
 				intersectionOnPolyLine.push(current_l_2i);
@@ -508,18 +507,11 @@ export class Model3D {
 
 		for (let i = 0; i < intersectionOnPolyLine.length; i++) {
 			const current = intersectionOnPolyLine[i];
-			console.group(i);
-			console.log(current);
 
 			if (current) {
-				// console.log(polygon[i]);
 
 				const edgeVec = subtract(polygon[(i + 1) % polygon.length].slice(0, 3), polygon[i].slice(0, 3));
 				const toIntersectionVec = subtract(current, polygon[i].slice(0, 3));
-				console.log(norm(toIntersectionVec));
-				console.log(dot(edgeVec, toIntersectionVec), edgeVec, toIntersectionVec);
-				console.log(norm(edgeVec), norm(toIntersectionVec));
-				console.log(norm(subtract(edgeVec, toIntersectionVec)));
 				if (norm(toIntersectionVec) as number < eps) {
 					console.log("push vertex");
 					isIntersectionOnVertex[i] = true;
@@ -551,7 +543,6 @@ export class Model3D {
 			indexCode = isIntersectionOnEdge.indexOf(false);
 		}
 
-		console.log(intersectionPoint, type);
 		return { positions: intersectionPoint, type: type, indexCode: indexCode };
 	}
 
